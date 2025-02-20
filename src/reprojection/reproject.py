@@ -442,19 +442,17 @@ class Reproject:
 
         return x_distorted+ self.source_wcs.CRPIX1, y_distorted+ self.source_wcs.CRPIX2
 
-    def interpolate_source_image(self, interpolation_mode='nearest'):
+    def interpolate_source_image(self, interpolation_mode='bilinear'):
         """
         Interpolate the source image at calculated source coordinates
         """
         # Get source coordinates
         x_source, y_source = self.calculate_sourceCoords()
-
-
-        # Normalize coordinates to [-1, 1] range as required by grid_sample
         H, W = self.source_image.shape
+
+        # Original grid_sample implementation for other modes
         x_normalized = 2.0 * (x_source / (W - 1)) - 1.0
         y_normalized = 2.0 * (y_source / (H - 1)) - 1.0
-
 
         # Stack coordinates into sampling grid
         grid = torch.stack([x_normalized, y_normalized], dim=-1)
@@ -463,15 +461,13 @@ class Reproject:
         source_image = self.source_image.unsqueeze(0).unsqueeze(0)  # [1, 1, H, W]
         grid = grid.unsqueeze(0)  # [1, H, W, 2]
 
-
-
         # Perform interpolation
         resampled = torch.nn.functional.grid_sample(
             source_image,
             grid,
-            mode="bilinear",  # Try bilinear instead of bicubic
-            align_corners=True,  # Change to True
-            padding_mode='zeros'
+            mode=interpolation_mode,
+            align_corners=True,
+            padding_mode='zeros',
         )
         # Remove batch and channel dimensions
         resampled = resampled.squeeze()

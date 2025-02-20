@@ -82,18 +82,18 @@ def compare_images(source_hdu, reprojected_source):
     # Create normalization based on both images
     zscale = ZScaleInterval()
     norm_source = ImageNormalize(source_data, interval=zscale)
-    norm_reproj = ImageNormalize(reprojected_source, interval=zscale)
+    norm_reproj = ImageNormalize(source_data, interval=zscale)
 
     # Create the figure with just two subplots
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
 
     # Plot original
-    im1 = ax1.imshow(source_data, norm=norm_source, origin='lower', cmap='viridis')
+    im1 = ax1.imshow(source_data, norm=norm_source, origin='lower', cmap=cmc.lipari)
     ax1.set_title(f'Original Source\n{source_data.shape}')
     plt.colorbar(im1, ax=ax1)
 
     # Plot reprojected
-    im2 = ax2.imshow(reprojected_source, norm=norm_reproj, origin='lower', cmap='viridis')
+    im2 = ax2.imshow(reprojected_source, norm=norm_reproj, origin='lower', cmap=cmc.lipari)
     ax2.set_title(f'Reprojected Source\n{reprojected_source.shape}')
     plt.colorbar(im2, ax=ax2)
 
