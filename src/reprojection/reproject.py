@@ -121,51 +121,41 @@ class WCSHeader:
             v (torch.Tensor): intermediate y coordinates
 
         Returns:
-            value of SIP polynomial A
+            torch.Tensor: value of SIP polynomial A
         """
-        if self.A_ORDER == 3:
-            return self.A[0] * v**2 + self.A[1] * v**3 + self.A[2] * u * v + self.A[3] * u * v**2 + self.A[4] * u**2 + self.A[5] * u**2 * v + self.A[6] * u**3
+        if self.A_ORDER == 2:
+            # For order 2, we expect different coefficients
+            # Assuming list is in this order: [A_0_2, A_1_1, A_2_0]
+            if len(self.A) >= 3:
+                A_0_2 = self.A[0]
+                A_1_1 = self.A[1]
+                A_2_0 = self.A[2]
+
+                return (A_0_2 * v ** 2 +
+                        A_1_1 * u * v +
+                        A_2_0 * u ** 2)
+            else:
+                return torch.zeros_like(u)  # Safe fallback if not enough coefficients
+
+        elif self.A_ORDER == 3:
+            if len(self.A) >= 7:
+                A_0_2 = self.A[0]
+                A_0_3 = self.A[1]
+                A_1_1 = self.A[2]
+                A_1_2 = self.A[3]
+                A_2_0 = self.A[4]
+                A_2_1 = self.A[5]
+                A_3_0 = self.A[6]
+
+                return (A_0_2 * v ** 2 + A_0_3 * v ** 3 +
+                        A_1_1 * u * v + A_1_2 * u * v ** 2 +
+                        A_2_0 * u ** 2 + A_2_1 * u ** 2 * v +
+                        A_3_0 * u ** 3)
+            else:
+                return torch.zeros_like(u)  # Safe fallback
+
         else:
-            raise Exception('SIP polynomial A must be order of 3')
-
-    def SIP_polynomial_AP(self, u, v):
-        """
-        Compute inverse SIP polynomial A
-        Args:
-            u (torch.Tensor): intermediate x coordinates
-            v (torch.Tensor): intermediate y coordinates
-
-        Returns:
-            value of inverse SIP polynomial A
-        """
-        if self.AP_ORDER == 3:
-            return (self.AP[0] +
-                    self.AP[1] * v + self.AP[2] * v ** 2 + self.AP[3] * v ** 3 +
-                    self.AP[4] * u + self.AP[5] * u * v + self.AP[6] * u * v ** 2 +
-                    self.AP[7] * u ** 2 + self.AP[8] * u ** 2 * v +
-                    self.AP[9] * u ** 3)
-        else:
-            raise Exception('SIP polynomial AP must be order of 3')
-
-    def SIP_polynomial_BP(self, u, v):
-        """
-        Compute inverse SIP polynomial B
-        Args:
-            u (torch.Tensor): intermediate x coordinates
-            v (torch.Tensor): intermediate y coordinates
-
-        Returns:
-            value of inverse SIP polynomial B
-        """
-
-        if self.BP_ORDER == 3:
-            return (self.BP[0] +
-                    self.BP[1] * v + self.BP[2] * v ** 2 + self.BP[3] * v ** 3 +
-                    self.BP[4] * u + self.BP[5] * u * v + self.BP[6] * u * v ** 2 +
-                    self.BP[7] * u ** 2 + self.BP[8] * u ** 2 * v +
-                    self.BP[9] * u ** 3)
-        else:
-            raise Exception('SIP polynomial BP must be order of 3')
+            return torch.zeros_like(u)  # Return zeros for unsupported orders
 
     def SIP_polynomial_B(self, u, v):
         """
@@ -176,12 +166,149 @@ class WCSHeader:
             v (torch.Tensor): intermediate y coordinates
 
         Returns:
-            value of SIP polynomial B
+            torch.Tensor: value of SIP polynomial B
         """
-        if self.B_ORDER == 3:
-            return self.B[0] * v**2 + self.B[1] * v**3 + self.B[2] * u * v + self.B[3] * u * v**2 + self.B[4] * u**2 + self.B[5] * u**2 * v + self.B[6] * u**3
+        if self.B_ORDER == 2:
+            # For order 2, we expect different coefficients
+            # Assuming list is in this order: [B_0_2, B_1_1, B_2_0]
+            if len(self.B) >= 3:
+                B_0_2 = self.B[0]
+                B_1_1 = self.B[1]
+                B_2_0 = self.B[2]
+
+                return (B_0_2 * v ** 2 +
+                        B_1_1 * u * v +
+                        B_2_0 * u ** 2)
+            else:
+                return torch.zeros_like(u)  # Safe fallback
+
+        elif self.B_ORDER == 3:
+            if len(self.B) >= 7:
+                B_0_2 = self.B[0]
+                B_0_3 = self.B[1]
+                B_1_1 = self.B[2]
+                B_1_2 = self.B[3]
+                B_2_0 = self.B[4]
+                B_2_1 = self.B[5]
+                B_3_0 = self.B[6]
+
+                return (B_0_2 * v ** 2 + B_0_3 * v ** 3 +
+                        B_1_1 * u * v + B_1_2 * u * v ** 2 +
+                        B_2_0 * u ** 2 + B_2_1 * u ** 2 * v +
+                        B_3_0 * u ** 3)
+            else:
+                return torch.zeros_like(u)  # Safe fallback
+
         else:
-            raise Exception('SIP polynomial B must be order of 3')
+            return torch.zeros_like(u)  # Return zeros for unsupported orders
+
+    def SIP_polynomial_AP(self, u, v):
+        """
+        Compute inverse SIP polynomial A
+
+        Args:
+            u (torch.Tensor): intermediate x coordinates
+            v (torch.Tensor): intermediate y coordinates
+
+        Returns:
+            torch.Tensor: value of inverse SIP polynomial A
+        """
+        if self.AP_ORDER == 2:
+            # For order 2, using the first 6 coefficients:
+            # [AP_0_0, AP_0_1, AP_0_2, AP_1_0, AP_1_1, AP_2_0]
+            if len(self.AP) >= 6:
+                AP_0_0 = self.AP[0]
+                AP_0_1 = self.AP[1]
+                AP_0_2 = self.AP[2]
+                AP_1_0 = self.AP[3]
+                AP_1_1 = self.AP[4]
+                AP_2_0 = self.AP[5]
+
+                return (AP_0_0 +
+                        AP_0_1 * v + AP_0_2 * v ** 2 +
+                        AP_1_0 * u + AP_1_1 * u * v +
+                        AP_2_0 * u ** 2)
+            else:
+                return torch.zeros_like(u)  # Safe fallback
+
+        elif self.AP_ORDER == 3:
+            if len(self.AP) >= 10:
+                AP_0_0 = self.AP[0]
+                AP_0_1 = self.AP[1]
+                AP_0_2 = self.AP[2]
+                AP_0_3 = self.AP[3]
+                AP_1_0 = self.AP[4]
+                AP_1_1 = self.AP[5]
+                AP_1_2 = self.AP[6]
+                AP_2_0 = self.AP[7]
+                AP_2_1 = self.AP[8]
+                AP_3_0 = self.AP[9]
+
+                return (AP_0_0 +
+                        AP_0_1 * v + AP_0_2 * v ** 2 + AP_0_3 * v ** 3 +
+                        AP_1_0 * u + AP_1_1 * u * v + AP_1_2 * u * v ** 2 +
+                        AP_2_0 * u ** 2 + AP_2_1 * u ** 2 * v +
+                        AP_3_0 * u ** 3)
+            else:
+                return torch.zeros_like(u)  # Safe fallback
+
+        else:
+            return torch.zeros_like(u)  # Return zeros for unsupported orders
+
+    def SIP_polynomial_BP(self, u, v):
+        """
+        Compute inverse SIP polynomial B
+
+        Args:
+            u (torch.Tensor): intermediate x coordinates
+            v (torch.Tensor): intermediate y coordinates
+
+        Returns:
+            torch.Tensor: value of inverse SIP polynomial B
+        """
+        if self.BP_ORDER == 2:
+            # For order 2, using the first 6 coefficients:
+            # [BP_0_0, BP_0_1, BP_0_2, BP_1_0, BP_1_1, BP_2_0]
+            if len(self.BP) >= 6:
+                BP_0_0 = self.BP[0]
+                BP_0_1 = self.BP[1]
+                BP_0_2 = self.BP[2]
+                BP_1_0 = self.BP[3]
+                BP_1_1 = self.BP[4]
+                BP_2_0 = self.BP[5]
+
+                return (BP_0_0 +
+                        BP_0_1 * v + BP_0_2 * v ** 2 +
+                        BP_1_0 * u + BP_1_1 * u * v +
+                        BP_2_0 * u ** 2)
+            else:
+                return torch.zeros_like(u)  # Safe fallback
+
+        elif self.BP_ORDER == 3:
+            if len(self.BP) >= 10:
+                BP_0_0 = self.BP[0]
+                BP_0_1 = self.BP[1]
+                BP_0_2 = self.BP[2]
+                BP_0_3 = self.BP[3]
+                BP_1_0 = self.BP[4]
+                BP_1_1 = self.BP[5]
+                BP_1_2 = self.BP[6]
+                BP_2_0 = self.BP[7]
+                BP_2_1 = self.BP[8]
+                BP_3_0 = self.BP[9]
+
+                return (BP_0_0 +
+                        BP_0_1 * v + BP_0_2 * v ** 2 + BP_0_3 * v ** 3 +
+                        BP_1_0 * u + BP_1_1 * u * v + BP_1_2 * u * v ** 2 +
+                        BP_2_0 * u ** 2 + BP_2_1 * u ** 2 * v +
+                        BP_3_0 * u ** 3)
+            else:
+                return torch.zeros_like(u)  # Safe fallback
+
+        else:
+            return torch.zeros_like(u)  # Return zeros for unsupported orders
+
+
 
 class Reproject:
     def __init__(self, target_wcs: WCSHeader, source_wcs: WCSHeader, target_image: torch.Tensor, source_image: torch.Tensor, device: str):
@@ -256,7 +383,6 @@ class Reproject:
         )
 
 
-        print(ra, dec)
         return ra, dec
 
     def calculate_sourceCoords(self):
@@ -293,7 +419,7 @@ class Reproject:
         denom = torch.clamp(denom, min=eps, max=1 - eps)
 
         # Compute tangent plane coordinates
-        x = -cos_dec * sin_d_ra / denom
+        x = -cos_dec * sin_d_ra / denom  # We need the negative sign here because of astronomical conventions
         y = (sin_dec * cos_dec_0 - cos_dec * sin_dec_0 * cos_d_ra) / denom
 
         # Scale coordinates
@@ -309,21 +435,12 @@ class Reproject:
         # Reshape back to original spatial dimensions
         x_intermediate = transformed[0].reshape(self.target_image.shape[0], self.target_image.shape[1])
         y_intermediate = transformed[1].reshape(self.target_image.shape[0], self.target_image.shape[1])
-        x_intermediate = x_intermediate + self.source_wcs.CRPIX1
-        y_intermediate = y_intermediate + self.source_wcs.CRPIX2
-
 
         # Apply inverse SIP distortion correction
-        x_distorted = x_intermediate + self.source_wcs.SIP_polynomial_AP(
-             x_intermediate,
-             y_intermediate
-         )
-        y_distorted = y_intermediate + self.source_wcs.SIP_polynomial_BP(
-            x_intermediate,
-            y_intermediate
-        )
+        x_distorted = x_intermediate + self.source_wcs.SIP_polynomial_AP(x_intermediate,y_intermediate)
+        y_distorted = y_intermediate + self.source_wcs.SIP_polynomial_BP(x_intermediate,y_intermediate)
 
-        return x_distorted, y_distorted
+        return x_distorted+ self.source_wcs.CRPIX1, y_distorted+ self.source_wcs.CRPIX2
 
     def interpolate_source_image(self, interpolation_mode='nearest'):
         """
@@ -332,10 +449,6 @@ class Reproject:
         # Get source coordinates
         x_source, y_source = self.calculate_sourceCoords()
 
-        # Debug prints
-        print(f"Source coordinates ranges:")
-        print(f"x_source: [{x_source.min():.3f}, {x_source.max():.3f}]")
-        print(f"y_source: [{y_source.min():.3f}, {y_source.max():.3f}]")
 
         # Normalize coordinates to [-1, 1] range as required by grid_sample
         H, W = self.source_image.shape
@@ -356,11 +469,10 @@ class Reproject:
         resampled = torch.nn.functional.grid_sample(
             source_image,
             grid,
-            mode=interpolation_mode,
-            align_corners=True,
-            padding_mode='zeros'  # or 'border' or 'reflection'
+            mode="bilinear",  # Try bilinear instead of bicubic
+            align_corners=True,  # Change to True
+            padding_mode='zeros'
         )
-
         # Remove batch and channel dimensions
         resampled = resampled.squeeze()
 

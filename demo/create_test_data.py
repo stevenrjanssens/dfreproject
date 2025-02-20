@@ -351,6 +351,113 @@ def create_test_fits():
     return 'data/test_source.fits', 'data/test_target.fits'
 
 
+def create_test_fits_tiny():
+    """
+    Create two test FITS files with minimal WCS differences and extremely small SIP coefficients
+    """
+    # Create simple test images (50x50 for faster processing)
+    source_data = np.random.normal(100, 5, (50, 50))
+    target_data = np.random.normal(100, 5, (50, 50))
+
+    # Add a few Gaussian sources to source image
+    source_sources = [
+        (15, 15, 50, 2, 2),  # x, y, amplitude, sigma_x, sigma_y
+        (35, 35, 40, 2, 2),
+        (25, 35, 45, 2, 2),
+    ]
+
+    for x, y, amp, sig_x, sig_y in source_sources:
+        source_data += create_gaussian_source(x, y, amp, sig_x, sig_y, source_data.shape)
+
+    # Add corresponding sources to target image (very slightly shifted)
+    target_sources = [
+        (16, 16, 50, 2, 2),  # Just shifted by 1 pixel
+        (36, 36, 40, 2, 2),
+        (26, 36, 45, 2, 2),
+    ]
+
+    for x, y, amp, sig_x, sig_y in target_sources:
+        target_data += create_gaussian_source(x, y, amp, sig_x, sig_y, target_data.shape)
+
+    # Create primary HDUs
+    source_hdu = fits.PrimaryHDU(source_data)
+    target_hdu = fits.PrimaryHDU(target_data)
+
+    # Source WCS header - extremely simple
+    source_hdu.header['CTYPE1'] = 'RA---TAN-SIP'
+    source_hdu.header['CTYPE2'] = 'DEC--TAN-SIP'
+    source_hdu.header['CRVAL1'] = 150.0  # RA of reference pixel
+    source_hdu.header['CRVAL2'] = 30.0  # DEC of reference pixel
+    source_hdu.header['CRPIX1'] = 25.0  # Center of image
+    source_hdu.header['CRPIX2'] = 25.0  # Center of image
+    source_hdu.header['CDELT1'] = -0.001  # Degree increment along x-axis
+    source_hdu.header['CDELT2'] = 0.001  # Degree increment along y-axis
+    source_hdu.header['PC1_1'] = 1.0  # Identity matrix - no rotation
+    source_hdu.header['PC1_2'] = 0.0
+    source_hdu.header['PC2_1'] = 0.0
+    source_hdu.header['PC2_2'] = 1.0
+
+    # Target WCS header - minimal differences
+    target_hdu.header['CTYPE1'] = 'RA---TAN-SIP'
+    target_hdu.header['CTYPE2'] = 'DEC--TAN-SIP'
+    target_hdu.header['CRVAL1'] = 150.01  # Just 0.01 degree offset
+    target_hdu.header['CRVAL2'] = 30.01  # Just 0.01 degree offset
+    target_hdu.header['CRPIX1'] = 26.0  # Just 1 pixel offset
+    target_hdu.header['CRPIX2'] = 26.0  # Just 1 pixel offset
+    target_hdu.header['CDELT1'] = -0.001  # Same scale
+    target_hdu.header['CDELT2'] = 0.001  # Same scale
+    target_hdu.header['PC1_1'] = 0.9999  # Tiny rotation
+    target_hdu.header['PC1_2'] = -0.0044
+    target_hdu.header['PC2_1'] = 0.0044
+    target_hdu.header['PC2_2'] = 0.9999
+
+    # Add minimal SIP information
+    # Source SIP - tiny coefficients
+    source_hdu.header['A_ORDER'] = 2  # Lower order for simplicity
+    source_hdu.header['B_ORDER'] = 2
+    source_hdu.header['AP_ORDER'] = 2
+    source_hdu.header['BP_ORDER'] = 2
+
+    # Forward SIP - extremely small coefficients
+    source_hdu.header['A_1_1'] = 1.0e-8  # Extremely tiny
+    source_hdu.header['A_2_0'] = 5.0e-9
+    source_hdu.header['B_1_1'] = 1.0e-8
+    source_hdu.header['B_0_2'] = 5.0e-9
+
+    # Inverse SIP - corresponding tiny coefficients
+    source_hdu.header['AP_0_0'] = 0.0  # Zero constant term
+    source_hdu.header['AP_1_1'] = -1.0e-8  # Opposite of forward
+    source_hdu.header['AP_2_0'] = -5.0e-9
+    source_hdu.header['BP_0_0'] = 0.0
+    source_hdu.header['BP_1_1'] = -1.0e-8
+    source_hdu.header['BP_0_2'] = -5.0e-9
+
+    # Target has identical SIP coefficients
+    target_hdu.header['A_ORDER'] = 2
+    target_hdu.header['B_ORDER'] = 2
+    target_hdu.header['AP_ORDER'] = 2
+    target_hdu.header['BP_ORDER'] = 2
+
+    target_hdu.header['A_1_1'] = 1.0e-8
+    target_hdu.header['A_2_0'] = 5.0e-9
+    target_hdu.header['B_1_1'] = 1.0e-8
+    target_hdu.header['B_0_2'] = 5.0e-9
+
+    target_hdu.header['AP_0_0'] = 0.0
+    target_hdu.header['AP_1_1'] = -1.0e-8
+    target_hdu.header['AP_2_0'] = -5.0e-9
+    target_hdu.header['BP_0_0'] = 0.0
+    target_hdu.header['BP_1_1'] = -1.0e-8
+    target_hdu.header['BP_0_2'] = -5.0e-9
+
+    # Write files
+    if not os.path.exists('data'):
+        os.mkdir('data')
+    source_hdu.writeto('data/test_source_tiny.fits', overwrite=True)
+    target_hdu.writeto('data/test_target_tiny.fits', overwrite=True)
+
+    return 'data/test_source_tiny.fits', 'data/test_target_tiny.fits'
+
 def main():
     source_file, target_file = create_test_fits()
     print(f"Created source file: {source_file}")
