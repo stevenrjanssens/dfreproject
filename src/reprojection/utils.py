@@ -7,6 +7,61 @@ import numpy as np
 import torch
 
 def plot_wcs_comparison(source_hdu: fits.PrimaryHDU, target_hdu: fits.PrimaryHDU):
+    """
+    Create a visual comparison of two astronomical images with different WCS (World Coordinate System) projections.
+
+    This function generates a three-panel figure that shows:
+    1. The source image with coordinate grid
+    2. The target image with coordinate grid
+    3. An overlay of both WCS grids to visualize the coordinate transformation
+
+    The visualization helps to understand the differences between two WCS projections
+    and the transformations required for reprojection.
+
+    Parameters
+    ----------
+    source_hdu : fits.PrimaryHDU
+        The source image HDU containing both the image data and WCS information
+        in its header. This is the "before" image.
+
+    target_hdu : fits.PrimaryHDU
+        The target image HDU containing both the image data and WCS information
+        in its header. This is the "after" image or the reference frame.
+
+    Returns
+    -------
+    None
+        This function does not return any value but displays a matplotlib figure
+        with the three-panel comparison.
+
+    Notes
+    -----
+    The function uses:
+    - WCS from astropy for coordinate handling
+    - simple_norm from astropy.visualization for image normalization
+    - A preset RA/Dec grid covering 149.8-150.3 degrees in RA and 29.8-30.3 degrees in Dec
+    - The 'lipari' colormap from cmc
+    - Asinh scaling for better visualization of astronomical data
+
+    The third panel shows how the same celestial coordinates map to different
+    pixel positions in the two images, which is useful for understanding the
+    distortions introduced by different projections.
+
+    Examples
+    --------
+    >>> from astropy.io import fits
+    >>> # Load source and target images
+    >>> source = fits.open('original_image.fits')[0]
+    >>> target = fits.open('reprojected_image.fits')[0]
+    >>> # Create the comparison plot
+    >>> plot_wcs_comparison(source, target)
+
+    See Also
+    --------
+    WCS : Astropy World Coordinate System class
+
+
+    """
     # Create WCS objects
     source_wcs = WCS(source_hdu.header)
     target_wcs = WCS(target_hdu.header)
@@ -71,7 +126,52 @@ def plot_wcs_comparison(source_hdu: fits.PrimaryHDU, target_hdu: fits.PrimaryHDU
 
 def compare_images(source_hdu, reprojected_source):
     """
-    Compare original and reprojected images
+    Create a side-by-side comparison of original and reprojected astronomical images.
+
+    This function generates a two-panel figure displaying the original source image
+    alongside its reprojected version for visual comparison. The images are displayed
+    with the same normalization to facilitate direct comparison of features and flux.
+
+    Parameters
+    ----------
+    source_hdu : fits.PrimaryHDU or fits.ImageHDU
+        The original source image HDU containing image data. This represents the
+        input image before reprojection.
+
+    reprojected_source : numpy.ndarray or torch.Tensor
+        The reprojected version of the source image. Can be either a NumPy array
+        or a PyTorch tensor (which will be converted to NumPy for plotting).
+
+    Returns
+    -------
+    matplotlib.figure.Figure
+        The figure object containing the side-by-side comparison plot.
+        This allows for further customization or saving the figure.
+
+    Notes
+    -----
+    This function:
+    - Automatically converts PyTorch tensors to NumPy arrays if needed
+    - Uses ZScale normalization from astropy for optimal visualization of astronomical data
+    - Applies the same normalization to both images for fair comparison
+    - Shows image dimensions in the subplot titles
+    - Uses the 'lipari' colormap which is effective for astronomical imagery
+    - Displays images with 'lower' origin, following astronomical convention
+
+    Examples
+    --------
+    >>> from astropy.io import fits
+    >>> from reprojection import calculate_reprojection
+    >>>
+    >>> # Load source image
+    >>> source_hdu = fits.open('source_image.fits')[0]
+    >>>
+    >>> # Get reprojected image (example with some target WCS)
+    >>> reprojected_data, _ = calculate_reprojection(source_hdu, target_wcs)
+    >>>
+    >>> # Compare the original and reprojected images
+    >>> fig = compare_images(source_hdu, reprojected_data)
+    >>> fig.savefig('comparison.png', dpi=300)
     """
     # Convert tensor back to CPU numpy if needed
     if torch.is_tensor(reprojected_source):

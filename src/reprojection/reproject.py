@@ -9,49 +9,177 @@ EPSILON = 1e-10
 @dataclass
 class WCSHeader:
     """
-    Dataclass to hold all WCS information
+    A dataclass containing World Coordinate System (WCS) parameters with SIP distortion coefficients.
+
+    This class encapsulates all the necessary parameters for defining a WCS transformation
+    with Simple Imaging Polynomial (SIP) distortion representation. It supports conversion
+    between pixel coordinates and world coordinates (RA/Dec) while accounting for optical
+    distortions in astronomical images.
+
+    Attributes
+    ----------
+    DEC_0 : torch.Tensor
+        Reference declination in degrees (CRVAL2 in FITS standard).
+
+    RA_0 : torch.Tensor
+        Reference right ascension in degrees (CRVAL1 in FITS standard).
+
+    CRPIX1 : torch.Tensor
+        X coordinate of reference pixel.
+
+    CRPIX2 : torch.Tensor
+        Y coordinate of reference pixel.
+
+    CDELT1 : torch.Tensor
+        Increment along axis 1 at reference point in degrees/pixel.
+
+    CDELT2 : torch.Tensor
+        Increment along axis 2 at reference point in degrees/pixel.
+
+    A_ORDER : int
+        Order of the forward SIP polynomial A for distortion correction.
+
+    B_ORDER : int
+        Order of the forward SIP polynomial B for distortion correction.
+
+    AP_ORDER : int
+        Order of the inverse SIP polynomial AP for distortion correction.
+
+    BP_ORDER : int
+        Order of the inverse SIP polynomial BP for distortion correction.
+
+    A : List[float]
+        SIP polynomial A coefficients in the format [A_0_2, A_0_3, A_1_1, A_1_2, A_2_0, A_2_1, A_3_0].
+        These coefficients describe distortion in the x-direction.
+
+    B : List[float]
+        SIP polynomial B coefficients in the format [B_0_2, B_0_3, B_1_1, B_1_2, B_2_0, B_2_1, B_3_0].
+        These coefficients describe distortion in the y-direction.
+
+    AP : List[float]
+        Inverse SIP polynomial AP coefficients in the format
+        [AP_0_0, AP_0_1, AP_0_2, AP_0_3, AP_1_0, AP_1_1, AP_1_2, AP_2_0, AP_2_1, AP_3_0].
+        Used for converting world coordinates back to pixel coordinates.
+
+    BP : List[float]
+        Inverse SIP polynomial BP coefficients in the format
+        [BP_0_0, BP_0_1, BP_0_2, BP_0_3, BP_1_0, BP_1_1, BP_1_2, BP_2_0, BP_2_1, BP_3_0].
+        Used for converting world coordinates back to pixel coordinates.
+
+    PC_Matrix : torch.Tensor
+        Projection transformation matrix as a 2x2 tensor: [[PC1_1, PC1_2], [PC2_1, PC2_2]].
+        Describes the rotation and scaling between intermediate world coordinates and pixel coordinates.
+
+    Notes
+    -----
+    The SIP convention (Simple Imaging Polynomial) is described in:
+    Shupe, D. L., et al. 2005, "The SIP Convention for Representing Distortion in FITS Image Headers"
+
+    This implementation uses PyTorch tensors to enable GPU acceleration and automatic
+    differentiation for the coordinate transformations.
+
+    Examples
+    --------
+    >>> # Create a WCS header from components
+    >>> wcs_info = WCSHeader(
+    ...     DEC_0=torch.tensor(30.0),
+    ...     RA_0=torch.tensor(150.0),
+    ...     CRPIX1=torch.tensor(512.0),
+    ...     CRPIX2=torch.tensor(512.0),
+    ...     CDELT1=torch.tensor(-0.001),
+    ...     CDELT2=torch.tensor(0.001),
+    ...     A_ORDER=3,
+    ...     B_ORDER=3,
+    ...     AP_ORDER=3,
+    ...     BP_ORDER=3,
+    ...     A=[1e-5, 2e-8, 3e-7, 5e-9, 1e-6, 7e-10, 4e-11],
+    ...     B=[2e-5, 3e-8, 2e-7, 6e-9, 5e-7, 8e-10, 5e-11],
+    ...     AP=[0.0, 0.0, -1e-5, -2e-8, 0.0, -3e-7, -5e-9, -1e-6, -7e-10, -4e-11],
+    ...     BP=[0.0, 0.0, -2e-5, -3e-8, 0.0, -2e-7, -6e-9, -5e-7, -8e-10, -5e-11],
+    ...     PC_Matrix=torch.tensor([[1.0, 0.0], [0.0, 1.0]])
+    ... )
     """
-    DEC_0: torch.tensor  # Declination in degrees
-    RA_0: torch.tensor   # RA in degrees
+    DEC_0: torch.tensor
+    RA_0: torch.tensor
     CRPIX1: torch.tensor
     CRPIX2: torch.tensor
     CDELT1: torch.tensor
     CDELT2: torch.tensor
-    A_ORDER: int  # Order of SIP polynomial A
-    B_ORDER: int  # Order of SIP polynomial B
-    AP_ORDER: int  # Order of inverse SIP polynomial A
-    BP_ORDER: int  # Order of inverse SIP polynomial B
-    A: List[float]  # SIP Polynomial A coefficients: [A_0_2, A_0_3, A_1_1, A_1_2, A_2_0, A_2_1, A_3_0]
-    B: List[float]  # SIP Polynomial B coefficients: [B_0_2, B_0_3, B_1_1, B_1_2, B_2_0, B_2_1, B_3_0]
-    AP: List[float]  # Inverse SIP Polynomial A coefficients: [AP_0_0, AP_0_1, AP_0_2, AP_0_3, AP_1_0, AP_1_1, AP_1_2, AP_2_0, AP_2_1, AP_3_0]
-    BP: List[float]  # Inverse SIP Polynomial B coefficients: [BP_0_0, BP_0_1, BP_0_2, BP_0_3, BP_1_0, BP_1_1, BP_1_2, BP_2_0, BP_2_1, BP_3_0]
-    PC_Matrix: torch.tensor  # Matrix of PC values as torch.Tensor: [[PC1_1, PC1_2], [PC2_1, PC2_2]]
+    A_ORDER: int
+    B_ORDER: int
+    AP_ORDER: int
+    BP_ORDER: int
+    A: List[float]
+    B: List[float]
+    AP: List[float]
+    BP: List[float]
+    PC_Matrix: torch.tensor
 
     @classmethod
-    def from_header(cls, header):
+    def from_header(cls, header: fits.Header):
         """
-        Create WCSHeader from astropy FITS header
+        Create a WCSHeader instance from an Astropy FITS header.
 
-        Args:
-            header: astropy.io.fits header object
-        Returns:
-            WCSHeader: Instance of WCSHeader containing WCS information
+        This class method extracts World Coordinate System (WCS) information from a FITS header,
+        including SIP distortion coefficients if present, and converts them to PyTorch tensors
+        for use in the WCSHeader class.
+
+        Parameters
+        ----------
+        header : astropy.io.fits.Header
+            An Astropy FITS header object containing WCS information. At minimum, the header
+            should contain the basic WCS keywords (CRVAL1/2, CRPIX1/2, CDELT1/2). If SIP
+            distortion is present, it will extract the polynomial coefficients.
+
+        Returns
+        -------
+        WCSHeader
+            A new instance of WCSHeader initialized with the WCS information from the header.
+
+        Notes
+        -----
+        This method:
+        - Extracts basic WCS parameters (reference coordinates, pixel scales)
+        - Handles SIP distortion polynomials (A, B, AP, BP coefficients)
+        - Sets default values for missing parameters
+        - Converts all numeric values to PyTorch tensors with float32 precision
+
+        The method is tolerant of missing SIP parameters and will default to an identity
+        transformation if SIP coefficients are not present in the header.
+
+        The PC matrix (rotation/scaling matrix) defaults to the identity matrix if not specified.
+
+        Examples
+        --------
+        >>> from astropy.io import fits
+        >>> from reprojection import WCSHeader
+        >>>
+        >>> # Open a FITS file and read its header
+        >>> hdul = fits.open('image.fits')
+        >>> header = hdul[0].header
+        >>>
+        >>> # Create a WCSHeader instance from the FITS header
+        >>> wcs_header = WCSHeader.from_header(header)
+        >>>
+        >>> # Now you can use the wcs_header for coordinate transformations
+        >>> # or pass it to reprojection functions
+
+        Raises
+        ------
+        KeyError
+            If the header is missing required WCS keywords (CRVAL1/2, CRPIX1/2, CDELT1/2)
         """
         # Get reference coordinates and convert to torch tensors
-        wcs_info = {
-            'DEC_0': torch.tensor(header['CRVAL2'], dtype=torch.float32),
-            'RA_0': torch.tensor(header['CRVAL1'], dtype=torch.float32),
-            'CRPIX1': torch.tensor(header['CRPIX1'], dtype=torch.float32),
-            'CRPIX2': torch.tensor(header['CRPIX2'], dtype=torch.float32),
-            'CDELT1': torch.tensor(header['CDELT1'], dtype=torch.float32),
-            'CDELT2': torch.tensor(header['CDELT2'], dtype=torch.float32),
-        }
+        wcs_info = {'DEC_0': torch.tensor(header['CRVAL2'], dtype=torch.float32),
+                    'RA_0': torch.tensor(header['CRVAL1'], dtype=torch.float32),
+                    'CRPIX1': torch.tensor(header['CRPIX1'], dtype=torch.float32),
+                    'CRPIX2': torch.tensor(header['CRPIX2'], dtype=torch.float32),
+                    'CDELT1': torch.tensor(header['CDELT1'], dtype=torch.float32),
+                    'CDELT2': torch.tensor(header['CDELT2'], dtype=torch.float32), 'A_ORDER': header.get('A_ORDER', 0),
+                    'B_ORDER': header.get('B_ORDER', 0), 'AP_ORDER': header.get('AP_ORDER', 0),
+                    'BP_ORDER': header.get('BP_ORDER', 0)}
 
         # Get SIP orders
-        wcs_info['A_ORDER'] = header.get('A_ORDER', 0)
-        wcs_info['B_ORDER'] = header.get('B_ORDER', 0)
-        wcs_info['AP_ORDER'] = header.get('AP_ORDER', 0)
-        wcs_info['BP_ORDER'] = header.get('BP_ORDER', 0)
 
         # Get PC Matrix values
         pc_matrix = torch.tensor([
@@ -106,22 +234,89 @@ class WCSHeader:
 
     def inverse_PC_Matrix(self):
         """
-        Calculate inverse PC matrix
-        Returns:
-            Inverse PC Matrix
+        Calculate the inverse of the PC matrix for coordinate transformations.
+
+        The PC (Projection Coordinate) matrix defines the linear transformation
+        between pixel coordinates and intermediate world coordinates. The inverse
+        of this matrix is needed when converting from world coordinates back to
+        pixel coordinates.
+
+        Returns
+        -------
+        torch.Tensor
+            A 2x2 tensor containing the inverse of the PC matrix.
+            This matrix has the same dtype as the original PC_Matrix.
+
+        Notes
+        -----
+        This method uses PyTorch's linear algebra module to compute the matrix inverse.
+        The PC matrix is typically well-conditioned in WCS, so numerical stability
+        issues are rare.
+
+        If the PC matrix is the identity matrix (the default when SIP distortion
+        is not present), its inverse is also the identity matrix.
         """
         return torch.linalg.inv(self.PC_Matrix)
 
     def SIP_polynomial_A(self, u, v):
         """
-        Calculate SIP polynomial A
+        Evaluate the SIP distortion polynomial A at the given intermediate coordinates.
+    
+        The Simple Imaging Polynomial (SIP) convention uses polynomial functions to model
+        optical distortion in astronomical images. This method calculates the x-direction
+        distortion correction using the A polynomial coefficients.
 
-        Args:
-            u (torch.Tensor): intermediate x coordinates
-            v (torch.Tensor): intermediate y coordinates
+        Parameters
+        ----------
+        u : torch.Tensor
+            Intermediate pixel x-coordinates relative to the reference pixel.
+            Can be a scalar, vector, or multi-dimensional tensor.
 
-        Returns:
-            torch.Tensor: value of SIP polynomial A
+        v : torch.Tensor
+            Intermediate pixel y-coordinates relative to the reference pixel.
+            Must have the same shape as `u`.
+
+        Returns
+        -------
+        torch.Tensor
+            The evaluated A polynomial values with the same shape as the input coordinates.
+            These values represent the x-direction distortion correction.
+
+        Notes
+        -----
+        Currently supports polynomial orders 2 and 3. For unsupported orders or
+        when coefficients are missing, returns zeros (no distortion correction).
+
+        The SIP convention is described in Shupe et al. (2005) and defines the
+        distortion as:
+
+        x = u + A(u,v)
+
+        where u,v are the undistorted intermediate pixel coordinates and x is the
+        distorted coordinate.
+
+        For order 2, the polynomial is:
+        A(u,v) = A_0_2 * v² + A_1_1 * u*v + A_2_0 * u²
+
+        For order 3, the polynomial adds higher-order terms:
+        A(u,v) = A_0_2 * v² + A_0_3 * v³ + A_1_1 * u*v + A_1_2 * u*v² +
+                 A_2_0 * u² + A_2_1 * u²*v + A_3_0 * u³
+
+        Examples
+        --------
+        >>> # Create coordinate grids centered at the reference pixel
+        >>> u = torch.linspace(-100, 100, 201)
+        >>> v = torch.linspace(-100, 100, 201)
+        >>> u_grid, v_grid = torch.meshgrid(u, v, indexing='ij')
+        >>>
+        >>> # Calculate SIP distortion correction
+        >>> correction_x = WCSHeader.SIP_polynomial_A(u_grid, v_grid)
+
+        See Also
+        --------
+        SIP_polynomial_B : Evaluate the B polynomial for y-direction distortion
+        SIP_polynomial_AP : Evaluate the inverse A polynomial
+        SIP_polynomial_BP : Evaluate the inverse B polynomial
         """
         if self.A_ORDER == 2:
             # For order 2, we expect different coefficients
@@ -159,14 +354,63 @@ class WCSHeader:
 
     def SIP_polynomial_B(self, u, v):
         """
-        Calculate SIP polynomial B
+        Evaluate the SIP distortion polynomial B at the given intermediate coordinates.
 
-        Args:
-            u (torch.Tensor): intermediate x coordinates
-            v (torch.Tensor): intermediate y coordinates
+        The Simple Imaging Polynomial (SIP) convention uses polynomial functions to model
+        optical distortion in astronomical images. This method calculates the y-direction
+        distortion correction using the B polynomial coefficients.
 
-        Returns:
-            torch.Tensor: value of SIP polynomial B
+        Parameters
+        ----------
+        u : torch.Tensor
+            Intermediate pixel x-coordinates relative to the reference pixel.
+            Can be a scalar, vector, or multi-dimensional tensor.
+
+        v : torch.Tensor
+            Intermediate pixel y-coordinates relative to the reference pixel.
+            Must have the same shape as `u`.
+
+        Returns
+        -------
+        torch.Tensor
+            The evaluated B polynomial values with the same shape as the input coordinates.
+            These values represent the y-direction distortion correction.
+
+        Notes
+        -----
+        Currently supports polynomial orders 2 and 3. For unsupported orders or
+        when coefficients are missing, returns zeros (no distortion correction).
+
+        The SIP convention is described in Shupe et al. (2005) and defines the
+        distortion as:
+
+        y = v + B(u,v)
+
+        where u,v are the undistorted intermediate pixel coordinates and y is the
+        distorted coordinate.
+
+        For order 2, the polynomial is:
+        B(u,v) = B_0_2 * v² + B_1_1 * u*v + B_2_0 * u²
+
+        For order 3, the polynomial adds higher-order terms:
+        B(u,v) = B_0_2 * v² + B_0_3 * v³ + B_1_1 * u*v + B_1_2 * u*v² +
+                 B_2_0 * u² + B_2_1 * u²*v + B_3_0 * u³
+
+        Examples
+        --------
+        >>> # Create coordinate grids centered at the reference pixel
+        >>> u = torch.linspace(-100, 100, 201)
+        >>> v = torch.linspace(-100, 100, 201)
+        >>> u_grid, v_grid = torch.meshgrid(u, v, indexing='ij')
+        >>>
+        >>> # Calculate SIP distortion correction
+        >>> correction_y = WCSHeader.SIP_polynomial_B(u_grid, v_grid)
+
+        See Also
+        --------
+        SIP_polynomial_A : Evaluate the A polynomial for x-direction distortion
+        SIP_polynomial_AP : Evaluate the inverse A polynomial
+        SIP_polynomial_BP : Evaluate the inverse B polynomial
         """
         if self.B_ORDER == 2:
             # For order 2, we expect different coefficients
@@ -204,14 +448,70 @@ class WCSHeader:
 
     def SIP_polynomial_AP(self, u, v):
         """
-        Compute inverse SIP polynomial A
+        Evaluate the inverse SIP distortion polynomial AP at the given coordinates.
 
-        Args:
-            u (torch.Tensor): intermediate x coordinates
-            v (torch.Tensor): intermediate y coordinates
+        The AP polynomial is used in the inverse transformation from distorted pixel
+        coordinates back to undistorted intermediate coordinates. This is essential
+        for converting world coordinates (RA/Dec) to pixel coordinates in the presence
+        of optical distortion.
 
-        Returns:
-            torch.Tensor: value of inverse SIP polynomial A
+        Parameters
+        ----------
+        u : torch.Tensor
+            Distorted pixel x-coordinates relative to the reference pixel.
+            Can be a scalar, vector, or multi-dimensional tensor.
+
+        v : torch.Tensor
+            Distorted pixel y-coordinates relative to the reference pixel.
+            Must have the same shape as `u`.
+
+        Returns
+        -------
+        torch.Tensor
+            The evaluated AP polynomial values with the same shape as the input coordinates.
+            These values represent the x-direction correction for the inverse transformation.
+
+        Notes
+        -----
+        Currently supports polynomial orders 2 and 3. For unsupported orders or
+        when coefficients are missing, returns zeros (no correction).
+
+        The inverse SIP convention defines the transformation as:
+
+        u′ = u + AP(u,v)
+
+        where u,v are the distorted pixel coordinates and u′ is the undistorted
+        intermediate coordinate.
+
+        For order 2, the polynomial is:
+        AP(u,v) = AP_0_0 + AP_0_1*v + AP_0_2*v² + AP_1_0*u + AP_1_1*u*v + AP_2_0*u²
+
+        For order 3, the polynomial adds higher-order terms:
+        AP(u,v) = AP_0_0 + AP_0_1*v + AP_0_2*v² + AP_0_3*v³ +
+                  AP_1_0*u + AP_1_1*u*v + AP_1_2*u*v² +
+                  AP_2_0*u² + AP_2_1*u²*v + AP_3_0*u³
+
+        Note that unlike the forward polynomials (A, B), the inverse polynomials include
+        constant (AP_0_0) and first-order terms to account for all distortion effects.
+
+        Examples
+        --------
+        >>> # Create coordinate grids for distorted pixel coordinates
+        >>> u = torch.linspace(-100, 100, 201)
+        >>> v = torch.linspace(-100, 100, 201)
+        >>> u_grid, v_grid = torch.meshgrid(u, v, indexing='ij')
+        >>>
+        >>> # Calculate inverse distortion correction
+        >>> correction_x = wcs_header.SIP_polynomial_AP(u_grid, v_grid)
+        >>>
+        >>> # Apply correction to get undistorted coordinates
+        >>> u_corrected = u_grid + correction_x
+
+        See Also
+        --------
+        SIP_polynomial_BP : Evaluate the inverse B polynomial for y-direction correction
+        SIP_polynomial_A : Evaluate the forward A polynomial
+        SIP_polynomial_B : Evaluate the forward B polynomial
         """
         if self.AP_ORDER == 2:
             # For order 2, using the first 6 coefficients:
@@ -257,14 +557,70 @@ class WCSHeader:
 
     def SIP_polynomial_BP(self, u, v):
         """
-        Compute inverse SIP polynomial B
+        Evaluate the inverse SIP distortion polynomial BP at the given coordinates.
 
-        Args:
-            u (torch.Tensor): intermediate x coordinates
-            v (torch.Tensor): intermediate y coordinates
+        The BP polynomial is used in the inverse transformation from distorted pixel
+        coordinates back to undistorted intermediate coordinates. This is essential
+        for converting world coordinates (RA/Dec) to pixel coordinates in the presence
+        of optical distortion.
 
-        Returns:
-            torch.Tensor: value of inverse SIP polynomial B
+        Parameters
+        ----------
+        u : torch.Tensor
+            Distorted pixel x-coordinates relative to the reference pixel.
+            Can be a scalar, vector, or multi-dimensional tensor.
+
+        v : torch.Tensor
+            Distorted pixel y-coordinates relative to the reference pixel.
+            Must have the same shape as `u`.
+
+        Returns
+        -------
+        torch.Tensor
+            The evaluated BP polynomial values with the same shape as the input coordinates.
+            These values represent the y-direction correction for the inverse transformation.
+
+        Notes
+        -----
+        Currently supports polynomial orders 2 and 3. For unsupported orders or
+        when coefficients are missing, returns zeros (no correction).
+
+        The inverse SIP convention defines the transformation as:
+
+        v′ = v + BP(u,v)
+
+        where u,v are the distorted pixel coordinates and v′ is the undistorted
+        intermediate coordinate.
+
+        For order 2, the polynomial is:
+        BP(u,v) = BP_0_0 + BP_0_1*v + BP_0_2*v² + BP_1_0*u + BP_1_1*u*v + BP_2_0*u²
+
+        For order 3, the polynomial adds higher-order terms:
+        BP(u,v) = BP_0_0 + BP_0_1*v + BP_0_2*v² + BP_0_3*v³ +
+                  BP_1_0*u + BP_1_1*u*v + BP_1_2*u*v² +
+                  BP_2_0*u² + BP_2_1*u²*v + BP_3_0*u³
+
+        Note that unlike the forward polynomials (A, B), the inverse polynomials include
+        constant (BP_0_0) and first-order terms to account for all distortion effects.
+
+        Examples
+        --------
+        >>> # Create coordinate grids for distorted pixel coordinates
+        >>> u = torch.linspace(-100, 100, 201)
+        >>> v = torch.linspace(-100, 100, 201)
+        >>> u_grid, v_grid = torch.meshgrid(u, v, indexing='ij')
+        >>>
+        >>> # Calculate inverse distortion correction
+        >>> correction_y = wcs_header.SIP_polynomial_BP(u_grid, v_grid)
+        >>>
+        >>> # Apply correction to get undistorted coordinates
+        >>> v_corrected = v_grid + correction_y
+
+        See Also
+        --------
+        SIP_polynomial_AP : Evaluate the inverse A polynomial for x-direction correction
+        SIP_polynomial_A : Evaluate the forward A polynomial
+        SIP_polynomial_B : Evaluate the forward B polynomial
         """
         if self.BP_ORDER == 2:
             # For order 2, using the first 6 coefficients:
@@ -312,6 +668,59 @@ class WCSHeader:
 
 class Reproject:
     def __init__(self, target_wcs: WCSHeader, source_wcs: WCSHeader, target_image: torch.Tensor, source_image: torch.Tensor, device: str):
+        """
+        Initialize a reprojection operation between source and target image frames.
+
+        This constructor sets up the necessary components for reprojecting an astronomical
+        image from one World Coordinate System (WCS) to another. It stores the source
+        and target WCS information, images, and creates a coordinate grid for the target
+        image that will be used in the reprojection process.
+
+        Parameters
+        ----------
+        target_wcs : WCSHeader
+            The WCS information for the target image, containing the coordinate system
+            and distortion parameters that define the output frame.
+
+        source_wcs : WCSHeader
+            The WCS information for the source image, containing the coordinate system
+            and distortion parameters of the input frame.
+
+        target_image : torch.Tensor
+            The target image tensor, which defines the shape and resolution of the
+            output reprojected image. This may be an empty tensor with the desired dimensions.
+
+        source_image : torch.Tensor
+            The source image tensor containing the pixel data to be reprojected.
+
+        device : str
+            The device to perform computations on, either 'cpu' or a CUDA device
+            specification (e.g., 'cuda:0'). All tensors will be created on this device.
+
+        Notes
+        -----
+        This constructor creates a coordinate grid spanning the entire target image,
+        which will be used for the pixel-to-world and world-to-pixel transformations
+        during reprojection. The grid is created with 'ij' indexing, where the first
+        dimension corresponds to y (rows) and the second to x (columns).
+
+        The coordinate grid is stored as a tuple of tensors (y_grid, x_grid), where
+        each element has the same shape as the target image.
+
+        Examples
+        --------
+        >>> # Assuming you have WCSHeader objects and image tensors:
+        >>> target_wcs = WCSHeader.from_header(target_fits_header)
+        >>> source_wcs = WCSHeader.from_header(source_fits_header)
+        >>>
+        >>> # Create tensor versions of images
+        >>> target_img = torch.zeros((1024, 1024), dtype=torch.float32)
+        >>> source_img = torch.tensor(source_data, dtype=torch.float32)
+        >>>
+        >>> # Initialize the reprojection object
+        >>> reproject = Reproject(target_wcs, source_wcs, target_img, source_img, 'cuda:0')
+
+        """
         self.target_wcs = target_wcs
         self.source_wcs = source_wcs
         self.target_image = target_image
@@ -325,7 +734,41 @@ class Reproject:
 
     def calculate_skyCoords(self):
         """
-        Calculate sky coordinates from target image coordinates.
+        Calculate sky coordinates (RA/Dec) for each pixel in the target image.
+
+        This method transforms pixel coordinates from the target image frame to celestial
+        coordinates (Right Ascension and Declination) using the full WCS transformation
+        pipeline including SIP distortion corrections. The transformation follows these steps:
+
+        1. Convert pixel coordinates to offsets from the reference pixel
+        2. Apply SIP distortion correction
+        3. Apply the PC matrix transformation
+        4. Scale by the pixel scale (CDELT)
+        5. Project the intermediate coordinates onto the celestial sphere using
+           gnomonic (tangent plane) projection
+
+        Returns
+        -------
+        tuple of torch.Tensor
+            A tuple containing (ra, dec) where:
+            - ra: Right Ascension in radians for each pixel in the target image
+            - dec: Declination in radians for each pixel in the target image
+
+            Both tensors have the same shape as the target image.
+
+        Notes
+        -----
+        This implementation follows the FITS WCS standard for gnomonic (TAN) projection
+        with SIP distortion corrections. The algorithm:
+
+        1. Computes intermediate pixel coordinates (u,v) as offsets from the reference pixel
+        2. Applies SIP distortion polynomials to get (x',y')
+        3. Applies the PC matrix transformation to get intermediate world coordinates
+        4. Scales by CDELT to get projection plane coordinates
+        5. Computes the spherical coordinates using the gnomonic projection equations
+
+        The output coordinates are in radians to facilitate further calculations.
+        To convert to degrees, use torch.rad2deg().
         """
         y, x = self.target_grid  # get target grid
 
@@ -351,10 +794,6 @@ class Reproject:
         # Scale by pixel scale
         x_scaled = x_intermediate * self.target_wcs.CDELT1
         y_scaled = y_intermediate * self.target_wcs.CDELT2
-
-        # x_scaled = x_scaled * torch.pi / 180
-        # y_scaled = y_scaled * torch.pi / 180
-
 
         # Convert reference coordinates to radians
         dec_0_rad = torch.deg2rad(torch.tensor(self.target_wcs.DEC_0, dtype=x_scaled.dtype))
@@ -382,18 +821,47 @@ class Reproject:
             torch.sin(dec_0_rad) * torch.sin(theta) * torch.cos(phi)
         )
 
-
         return ra, dec
 
     def calculate_sourceCoords(self):
         """
-        Calculate source coordinates from target image sky coordinates.
+        Calculate source image pixel coordinates corresponding to each target image pixel.
+
+        This method completes the coordinate mapping chain by transforming target image
+        pixels to sky coordinates and then to source image pixel coordinates. This is
+        the fundamental operation for image reprojection, as it determines which source
+        pixels should be sampled to create each target pixel. The transformation follows:
+
+        1. Calculate sky coordinates (RA/Dec) for each target pixel
+        2. Convert these celestial coordinates to intermediate world coordinates in the source frame
+        3. Apply the inverse PC matrix transformation
+        4. Apply inverse SIP distortion correction
+        5. Add reference pixel offsets to get final source pixel coordinates
+
+        Returns
+        -------
+        tuple of torch.Tensor
+            A tuple containing (x, y) where:
+            - x: Source image x-coordinates (columns) for each pixel in the target image
+            - y: Source image y-coordinates (rows) for each pixel in the target image
+
+            Both tensors have the same shape as the target image.
+
+        Notes
+        -----
+        This implementation handles the full FITS WCS transformation with SIP distortion,
+        calculating where in the source image each target pixel should sample from.
+
+        The method includes special handling for the RA wrap-around issue, ensuring
+        that coordinates spanning the 0h/24h boundary are correctly processed.
+
+        A small epsilon value is used to ensure numerical stability when computing
+        coordinates near the poles.
+
+        The output pixel coordinates can be used directly with grid sampling functions
+        to perform the actual reprojection.
         """
         ra_rad, dec_rad = self.calculate_skyCoords()  # get RA,DEC in radians
-
-        #ra_rad = torch.deg2rad(ra_rad)
-        #dec_rad = torch.deg2rad(dec_rad)
-
         # Convert reference coordinates to radians
         ra_0_rad = torch.deg2rad(torch.tensor(self.source_wcs.RA_0, dtype=ra_rad.dtype))
         dec_0_rad = torch.deg2rad(torch.tensor(self.source_wcs.DEC_0, dtype=dec_rad.dtype))
@@ -426,7 +894,6 @@ class Reproject:
         x_scaled = x / self.source_wcs.CDELT1
         y_scaled = y / self.source_wcs.CDELT2
 
-
         # Apply inverse WCS transformation
         coords = torch.stack([x_scaled, y_scaled])
         coords_flat = coords.reshape(2, -1)
@@ -444,7 +911,46 @@ class Reproject:
 
     def interpolate_source_image(self, interpolation_mode='bilinear'):
         """
-        Interpolate the source image at calculated source coordinates
+        Interpolate the source image at the calculated source coordinates.
+
+        This method performs the actual pixel resampling needed for reprojection.
+        It uses the coordinate mapping from target to source image (calculated by
+        calculate_sourceCoords) to sample pixel values from the source image
+        using the requested interpolation method. This is the final step in the
+        reprojection process.
+
+        Parameters
+        ----------
+        interpolation_mode : str, default 'bilinear'
+            The interpolation mode to use when sampling the source image.
+            Options include:
+            - 'nearest' : Nearest neighbor interpolation (no interpolation)
+            - 'bilinear' : Bilinear interpolation (default)
+            - 'bicubic' : Bicubic interpolation
+
+            These correspond to the modes available in torch.nn.functional.grid_sample.
+
+        Returns
+        -------
+        torch.Tensor
+            The reprojected image with the same shape as the target image.
+            Pixel values are interpolated from the source image according to
+            the WCS transformation.
+
+        Notes
+        -----
+        This implementation uses PyTorch's grid_sample function which requires
+        coordinates to be normalized to the range [-1, 1]. The method handles
+        this normalization internally.
+
+        Areas in the target image that map outside the source image boundaries
+        will be filled with zeros (using 'zeros' padding_mode).
+
+        The interpolation is performed with align_corners=True, which means
+        that the extreme values (-1 and 1) are considered to refer to the
+        centers of the corner pixels, as is standard in astronomical image
+        processing.
+
         """
         # Get source coordinates
         x_source, y_source = self.calculate_sourceCoords()
@@ -473,17 +979,72 @@ class Reproject:
         resampled = resampled.squeeze()
 
         return resampled
+
 def calculate_reprojection(source_hdu: fits.PrimaryHDU, target_hdu: fits.PrimaryHDU,  interpolation_mode='nearest'):
     """
-    Wrapper function to calculate reprojection
+    Reproject an astronomical image from a source WCS to a target WCS.
 
-    Args:
-        target_hdu:
-        source_hdu:
-        interpolation_mode: mode of interpolation ['nearest', 'bilinear', 'bicubic']
+    This high-level function provides a convenient interface for image reprojection,
+    handling all the necessary steps: WCS extraction, tensor creation, and interpolation.
+    It converts FITS HDU objects to the internal representation, performs the reprojection,
+    and returns the resulting image as a PyTorch tensor.
 
-    Returns:
-        reprojected_image: tensor of reprojected image
+    Parameters
+    ----------
+    source_hdu : fits.PrimaryHDU
+        The source image HDU containing the image data to be reprojected and
+        its associated WCS information in the header.
+
+    target_hdu : fits.PrimaryHDU
+        The target image HDU providing the output grid and WCS information. The
+        shape of target_hdu.data defines the dimensions of the output image.
+
+    interpolation_mode : str, default 'nearest'
+        The interpolation method to use when resampling the source image.
+        Options:
+        - 'nearest' : Nearest neighbor interpolation (fastest, default)
+        - 'bilinear' : Bilinear interpolation (good balance of speed/quality)
+        - 'bicubic' : Bicubic interpolation (highest quality, slowest)
+
+    Returns
+    -------
+    torch.Tensor
+        The reprojected image as a PyTorch tensor with the same shape as
+        target_hdu.data. The tensor is on the same device as the computation
+        (GPU if available, otherwise CPU).
+
+    Notes
+    -----
+    This function automatically:
+    - Detects and uses GPU acceleration if available
+    - Handles byte order conversion for tensor creation
+    - Converts data to float32 for processing
+    - Creates WCSHeader objects from FITS headers
+
+    To save the result as a FITS file, you will need to convert the tensor
+    back to a NumPy array and create a new FITS HDU with the target WCS header.
+
+    Examples
+    --------
+    >>> from astropy.io import fits
+    >>> import torch
+    >>> from astroreproject import calculate_reprojection
+    >>>
+    >>> # Open source and target images
+    >>> source_hdu = fits.open('source_image.fits')[0]
+    >>> target_hdu = fits.open('target_grid.fits')[0]
+    >>>
+    >>> # Perform reprojection with bilinear interpolation
+    >>> reprojected = calculate_reprojection(
+    ...     source_hdu=source_hdu,
+    ...     target_hdu=target_hdu,
+    ...     interpolation_mode='bilinear'
+    ... )
+    >>>
+    >>> # Convert back to NumPy and save as FITS
+    >>> reprojected_np = reprojected.cpu().numpy()
+    >>> output_hdu = fits.PrimaryHDU(data=reprojected_np, header=target_hdu.header)
+    >>> output_hdu.writeto('reprojected_image.fits', overwrite=True)
     """
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 

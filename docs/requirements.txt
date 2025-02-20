@@ -1,0 +1,8 @@
+sphinx>=5.0.0
+sphinx-rtd-theme>=1.0.0
+sphinx-autoapi>=2.0.0
+astropy>=4.0
+torch>=1.9.0
+numpy>=1.17.0
+matplotlib>=3.4.0
+cmcrameri
