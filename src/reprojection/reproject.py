@@ -960,6 +960,8 @@ class Reproject:
         x_normalized = 2.0 * (x_source / (W - 1)) - 1.0
         y_normalized = 2.0 * (y_source / (H - 1)) - 1.0
 
+        # Calculate origin flux
+        original_total_flux = torch.sum(self.source_image)
         # Stack coordinates into sampling grid
         grid = torch.stack([x_normalized, y_normalized], dim=-1)
 
@@ -977,8 +979,11 @@ class Reproject:
         )
         # Remove batch and channel dimensions
         resampled = resampled.squeeze()
+        # Apply simple flux conservation
+        new_total_flux = torch.sum(resampled)
+        normalization_factor_flux = original_total_flux / new_total_flux if new_total_flux > 0 else 1
 
-        return resampled
+        return resampled * normalization_factor_flux
 
 def calculate_reprojection(source_hdu: fits.PrimaryHDU, target_hdu: fits.PrimaryHDU,  interpolation_mode='nearest'):
     """

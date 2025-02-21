@@ -10,6 +10,7 @@ Reprojection is a Python package for reprojecting astronomical images.
    :caption: Contents:
 
    solution_methodology
+   examples
 
 
 Note: Claude.ai was used in preparing the docstrings for the functions and helping understand each step of the process.

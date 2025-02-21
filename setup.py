@@ -15,6 +15,8 @@ setup(
             "sphinx>=5.0.0",
             "sphinx-rtd-theme>=1.0.0",
             "sphinx-autoapi>=2.0.0",
+            "nbsphinx>=0.8.9",
+            "ipykernel>=6.0.0",
             "matplotlib>=3.4.0",
         ],
     },
