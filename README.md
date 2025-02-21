@@ -3,7 +3,7 @@
 A high-performance Python package for reprojecting astronomical images between different coordinate systems with support for SIP distortion correction.
 
 [![Documentation Status](https://readthedocs.org/projects/reprojection/badge/?version=latest)](https://reprojection.readthedocs.io/en/latest/?badge=latest)
-[![PyPI version](https://badge.fury.io/py/reprojection.svg)](https://badge.fury.io/py/reprojection)
+
 
 ## Features
 
@@ -24,18 +24,12 @@ A high-performance Python package for reprojecting astronomical images between d
 - Matplotlib (for visualization)
 - cmcrameri
 
-### Installing from PyPI
-
-```bash
-pip install reprojection
-```
-
 ### Installing from Source
 
 For the latest development version, install directly from the GitHub repository:
 
 ```bash
-git clone https://github.com/yourusername/reprojection.git
+git clone https://github.com/dragonfly/reprojection.git
 cd reprojection
 pip install -e .
 ```
