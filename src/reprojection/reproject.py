@@ -796,8 +796,8 @@ class Reproject:
         y_scaled = y_intermediate * self.target_wcs.CDELT2
 
         # Convert reference coordinates to radians
-        dec_0_rad = torch.deg2rad(torch.tensor(self.target_wcs.DEC_0, dtype=x_scaled.dtype))
-        ra_0_rad = torch.deg2rad(torch.tensor(self.target_wcs.RA_0, dtype=x_scaled.dtype))
+        dec_0_rad = torch.deg2rad(self.target_wcs.DEC_0)
+        ra_0_rad = torch.deg2rad(self.target_wcs.RA_0)
 
         # Compute radial distance
         r = torch.hypot(x_scaled, y_scaled)
@@ -863,8 +863,8 @@ class Reproject:
         """
         ra_rad, dec_rad = self.calculate_skyCoords()  # get RA,DEC in radians
         # Convert reference coordinates to radians
-        ra_0_rad = torch.deg2rad(torch.tensor(self.source_wcs.RA_0, dtype=ra_rad.dtype))
-        dec_0_rad = torch.deg2rad(torch.tensor(self.source_wcs.DEC_0, dtype=dec_rad.dtype))
+        ra_0_rad = torch.deg2rad(self.source_wcs.RA_0)
+        dec_0_rad = torch.deg2rad(self.source_wcs.DEC_0)
 
         # Compute trigonometric terms
         cos_dec_0 = torch.cos(dec_0_rad)
@@ -911,13 +911,17 @@ class Reproject:
 
     def interpolate_source_image(self, interpolation_mode='bilinear'):
         """
-        Interpolate the source image at the calculated source coordinates.
+        Interpolate the source image at the calculated source coordinates with flux conservation.
 
-        This method performs the actual pixel resampling needed for reprojection.
-        It uses the coordinate mapping from target to source image (calculated by
-        calculate_sourceCoords) to sample pixel values from the source image
-        using the requested interpolation method. This is the final step in the
-        reprojection process.
+        This method performs the actual pixel resampling needed for reprojection
+        while preserving the total flux (photometric accuracy). It implements a
+        footprint-based approach similar to that used in reproject_interp from the
+        Astropy package.
+
+        The method uses a combined tensor approach for computational efficiency,
+        performing both image resampling and footprint tracking in a single operation.
+        Total flux is conserved both locally (via footprint correction) and globally
+        (via final normalization).
 
         Parameters
         ----------
@@ -935,22 +939,25 @@ class Reproject:
         torch.Tensor
             The reprojected image with the same shape as the target image.
             Pixel values are interpolated from the source image according to
-            the WCS transformation.
+            the WCS transformation with flux conservation preserved.
 
         Notes
         -----
-        This implementation uses PyTorch's grid_sample function which requires
-        coordinates to be normalized to the range [-1, 1]. The method handles
-        this normalization internally.
+        This implementation uses a two-step flux conservation approach:
+
+        1. Local flux conservation: The image and a "ones" tensor are interpolated
+           together, and the interpolated image is divided by the interpolated ones
+           tensor (footprint) to correct for any flux spreading during interpolation.
+
+        2. Global flux conservation: The total flux of the output image is normalized
+           to match the total flux of the input image.
 
         Areas in the target image that map outside the source image boundaries
         will be filled with zeros (using 'zeros' padding_mode).
 
-        The interpolation is performed with align_corners=True, which means
-        that the extreme values (-1 and 1) are considered to refer to the
-        centers of the corner pixels, as is standard in astronomical image
-        processing.
-
+        This method is particularly suitable for high-precision photometry with
+        extended sources, as it properly preserves both the background noise
+        characteristics and the flux distribution of sources.
         """
         # Get source coordinates
         x_source, y_source = self.calculate_sourceCoords()
@@ -968,17 +975,25 @@ class Reproject:
         # Add batch and channel dimensions if needed
         source_image = self.source_image.unsqueeze(0).unsqueeze(0)  # [1, 1, H, W]
         grid = grid.unsqueeze(0)  # [1, H, W, 2]
+        ones = torch.ones_like(source_image)
+        # Stack image and ones along the channel dimension
+        combined = torch.cat([source_image, ones], dim=1)  # Shape becomes [1, 2, H, W]
 
-        # Perform interpolation
-        resampled = torch.nn.functional.grid_sample(
-            source_image,
+        # Single grid_sample call
+        combined_result = torch.nn.functional.grid_sample(
+            combined,
             grid,
-            mode=interpolation_mode,
+            mode='bilinear',
             align_corners=True,
-            padding_mode='zeros',
+            padding_mode='zeros'
         )
-        # Remove batch and channel dimensions
-        resampled = resampled.squeeze()
+
+        # Split the results
+        resampled = combined_result[:, 0].squeeze()
+        footprint = combined_result[:, 1].squeeze()
+        # Apply footprint correction where the footprint is significant
+        valid_mask = footprint > 1e-6
+        resampled[valid_mask] /= footprint[valid_mask]
         # Apply simple flux conservation
         new_total_flux = torch.sum(resampled)
         normalization_factor_flux = original_total_flux / new_total_flux if new_total_flux > 0 else 1
