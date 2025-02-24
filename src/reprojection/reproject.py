@@ -116,7 +116,7 @@ class WCSHeader:
     PC_Matrix: torch.tensor
 
     @classmethod
-    def from_header(cls, header: fits.Header):
+    def from_header(cls, header: fits.Header, device='cpu'):
         """
         Create a WCSHeader instance from an Astropy FITS header.
 
@@ -185,7 +185,7 @@ class WCSHeader:
         pc_matrix = torch.tensor([
             [header.get('PC1_1', 1.0), header.get('PC1_2', 0.0)],
             [header.get('PC2_1', 0.0), header.get('PC2_2', 1.0)]
-        ], dtype=torch.float32)
+        ], dtype=torch.float32, device=device)
         wcs_info['PC_Matrix'] = pc_matrix
         # Initialize empty coefficient lists
         A_coeffs = []
@@ -983,7 +983,7 @@ class Reproject:
         combined_result = torch.nn.functional.grid_sample(
             combined,
             grid,
-            mode='bilinear',
+            mode=interpolation_mode,
             align_corners=True,
             padding_mode='zeros'
         )
@@ -1048,7 +1048,7 @@ def calculate_reprojection(source_hdu: fits.PrimaryHDU, target_hdu: fits.Primary
     --------
     >>> from astropy.io import fits
     >>> import torch
-    >>> from astroreproject import calculate_reprojection
+    >>> from reprojection import calculate_reprojection
     >>>
     >>> # Open source and target images
     >>> source_hdu = fits.open('source_image.fits')[0]
@@ -1068,8 +1068,8 @@ def calculate_reprojection(source_hdu: fits.PrimaryHDU, target_hdu: fits.Primary
     """
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    target_wcs = WCSHeader.from_header(target_hdu.header)
-    source_wcs = WCSHeader.from_header(source_hdu.header)
+    target_wcs = WCSHeader.from_header(target_hdu.header, device=device)
+    source_wcs = WCSHeader.from_header(source_hdu.header, device=device)
     # Convert the data to native byte order before creating tensors
     target_data = target_hdu.data.astype(target_hdu.data.dtype.newbyteorder('='))
     source_data = source_hdu.data.astype(source_hdu.data.dtype.newbyteorder('='))
