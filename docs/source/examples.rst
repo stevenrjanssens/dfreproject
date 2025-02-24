@@ -8,3 +8,5 @@ This section contains example notebooks demonstrating how to use the package.
    :caption: Example Notebooks:
 
    examples/basic_reprojection
+   examples/reprojection-comparison
+   examples/reprojection-comparison-speed

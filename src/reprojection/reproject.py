@@ -4,7 +4,16 @@ from dataclasses import dataclass
 from typing import List
 
 EPSILON = 1e-10
-
+@torch.jit.script
+def interpolate_image(source_image: torch.Tensor, grid: torch.Tensor, interpolation_mode: str) -> torch.Tensor:
+    """JIT-compiled image interpolation using grid_sample"""
+    return torch.nn.functional.grid_sample(
+        source_image,
+        grid,
+        mode=interpolation_mode,
+        align_corners=True,
+        padding_mode='zeros'
+    )
 
 @dataclass
 class WCSHeader:
@@ -909,6 +918,8 @@ class Reproject:
 
         return x_distorted+ self.source_wcs.CRPIX1, y_distorted+ self.source_wcs.CRPIX2
 
+
+
     def interpolate_source_image(self, interpolation_mode='bilinear'):
         """
         Interpolate the source image at the calculated source coordinates with flux conservation.
@@ -980,13 +991,7 @@ class Reproject:
         combined = torch.cat([source_image, ones], dim=1)  # Shape becomes [1, 2, H, W]
 
         # Single grid_sample call
-        combined_result = torch.nn.functional.grid_sample(
-            combined,
-            grid,
-            mode=interpolation_mode,
-            align_corners=True,
-            padding_mode='zeros'
-        )
+        combined_result = interpolate_image(combined, grid, interpolation_mode)
 
         # Split the results
         resampled = combined_result[:, 0].squeeze()
