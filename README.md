@@ -3,7 +3,9 @@
 A high-performance Python package for reprojecting astronomical images between different coordinate systems with support for SIP distortion correction.
 
 [![Documentation Status](https://readthedocs.org/projects/reprojection/badge/?version=latest)](https://reprojection.readthedocs.io/en/latest/?badge=latest)
-
+[![Python Linting](https://github.com/DragonflyTelescope/reprojection/actions/workflows/python-code-quality.yml/badge.svg)](https://github.com/DragonflyTelescope/reprojection/actions/workflows/python-code-quailty.yml)
+[![Tests](https://github.com/DragonflyTelescope/reprojection/actions/workflows/tests.yml/badge.svg)](https://github.com/DragonflyTelescope/reprojection/actions/workflows/tests.yml)
+[![codecov](https://codecov.io/gh/DragonflyTelescope/reprojection/branch/main/graph/badge.svg)](https://codecov.io/gh/DragonflyTelescope/reprojection)
 
 ## Features
 
