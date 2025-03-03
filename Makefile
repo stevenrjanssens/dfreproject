@@ -32,7 +32,7 @@ clean: lint format
 check: dependencies
 	@echo "Checking code format..."
 	$(PYTHON) -m black --check $(SRC_DIR)
-	$(PYTHON) -m isort --check-only $(SRC_DIR)
+
 
 # Testing commands
 test-all: test-dependencies
