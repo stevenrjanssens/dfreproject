@@ -199,3 +199,15 @@ def compare_images(source_hdu, reprojected_source):
 
     plt.tight_layout()
     return fig
+
+def get_device():
+    try:
+        # Try to get CUDA device count to check if CUDA is properly initialized
+        if torch.cuda.is_available() and torch.cuda.device_count() > 0:
+            return torch.device('cuda:0')
+        else:
+            return torch.device('cpu')
+    except Exception as e:
+        print(f"CUDA error detected: {e}")
+        print("Falling back to CPU.")
+        return torch.device('cpu')

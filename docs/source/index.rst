@@ -3,13 +3,13 @@
 Welcome to reprojection's documentation!
 ========================================
 
-Reprojection is a Python package for reprojecting astronomical images.
+Reprojection is a Python package for reprojecting astronomical images. The code runs using torch in order to speed up calculations.
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-   solution_methodology
+   methodology
    examples
 
 
