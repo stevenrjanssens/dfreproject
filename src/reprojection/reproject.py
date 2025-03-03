@@ -409,18 +409,21 @@ class Reproject:
         combined_result = interpolate_image(combined, grid, interpolation_mode)
 
         # Split the results
-        resampled = combined_result[:, 0].squeeze()
-        footprint = combined_result[:, 1].squeeze()
-        # Apply footprint correction where the footprint is significant
-        valid_mask = footprint > 1e-6
-        resampled[valid_mask] /= footprint[valid_mask]
-        # Apply simple flux conservation
-        new_total_flux = torch.sum(resampled)
-        normalization_factor_flux = (
-            original_total_flux / new_total_flux if new_total_flux > 0 else 1
-        )
+        resampled_image = combined_result[:, 0].squeeze()
+        resampled_footprint = combined_result[:, 1].squeeze()
+        ## Create output array initialized with NaN or zeros
+        result = torch.full_like(resampled_image, torch.nan)
 
-        return resampled * normalization_factor_flux
+        # Apply footprint correction only where footprint is significant
+        # This follows Astropy's approach of using a small epsilon
+        valid_pixels = resampled_footprint > 1e-8
+
+        if torch.any(valid_pixels):
+            # Normalize by the footprint where valid
+            result[valid_pixels] = resampled_image[valid_pixels] / resampled_footprint[valid_pixels]
+
+
+        return result
 
 
 def calculate_reprojection(

@@ -7,6 +7,9 @@ A high-performance Python package for reprojecting astronomical images between d
 [![Tests](https://github.com/DragonflyTelescope/reprojection/actions/workflows/tests.yml/badge.svg)](https://github.com/DragonflyTelescope/reprojection/actions/workflows/tests.yml)
 [![codecov](https://codecov.io/gh/DragonflyTelescope/reprojection/branch/main/graph/badge.svg)](https://codecov.io/gh/DragonflyTelescope/reprojection)
 
+The idea behind this package was to make a stripped down version of the `reproject` package by astropy in order to reduce computational time. 
+We achieve approximately 40X faster computations with this package. Take a look at the demos for an example. 
+
 ## Features
 
 - Fast reprojection of astronomical images between different WCS frames
@@ -46,7 +49,7 @@ pip install -e ".[docs]"
 
 ```python
 from astropy.io import fits
-from reprojection import calculate_reprojection
+from reprojection.reproject import calculate_reprojection
 
 # Load source and target images
 source_hdu = fits.open('source_image.fits')[0]
@@ -69,7 +72,8 @@ output_hdu.writeto('reprojected_image.fits', overwrite=True)
 
 A collection of example notebooks and scripts is available in the `demos` folder to help you get started:
 
-- `demo.ipynb` - Simple example of reprojecting between two WCS frames
+- `reprojection-comparison.ipynb` - Simple example of reprojecting between two WCS frames and comparing the result of our implementation with the `reproject` package.
+- `Coordinate-Comparison.ipynb' - A step-by-step walkthrough of our coordinate transformations with a comparison to `astropy.wcs`.
 
 To run the demos:
 
