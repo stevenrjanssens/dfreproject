@@ -303,6 +303,183 @@ def create_test_fits_tiny():
 
     return 'data/test_source_tiny.fits', 'data/test_target_tiny.fits'
 
+def create_identity_fits():
+    """
+    Create a test FITS file with an identity WCS transformation.
+    This means (X, Y) <-> (RA, Dec) mapping is trivial.
+    """
+    # Create a simple test image (50x50)
+    data = np.random.normal(100, 5, (50, 50))
+
+    # Add a few Gaussian sources to make it non-trivial
+    sources = [
+        (15, 15, 50, 2, 2),
+        (35, 35, 40, 2, 2),
+        (25, 35, 45, 2, 2),
+    ]
+
+    for x, y, amp, sig_x, sig_y in sources:
+        data += create_gaussian_source(x, y, amp, sig_x, sig_y, data.shape)
+
+    # Create the Primary HDU
+    hdu = fits.PrimaryHDU(data)
+
+    # Define an **Identity WCS Transformation**
+    hdu.header['CTYPE1'] = 'RA---TAN'
+    hdu.header['CTYPE2'] = 'DEC--TAN'
+    hdu.header['CRVAL1'] = 0.0  # Reference RA at (0,0)
+    hdu.header['CRVAL2'] = 0.0  # Reference DEC at (0,0)
+    hdu.header['CRPIX1'] = 25.0  # Center of image
+    hdu.header['CRPIX2'] = 25.0  # Center of image
+    hdu.header['CDELT1'] = 1.0  # No scaling (1 pixel = 1 coordinate unit)
+    hdu.header['CDELT2'] = 1.0  # No scaling
+    hdu.header['PC1_1'] = 1.0  # No rotation
+    hdu.header['PC1_2'] = 0.0
+    hdu.header['PC2_1'] = 0.0
+    hdu.header['PC2_2'] = 1.0
+
+    # Ensure no SIP distortions by not adding SIP headers
+
+    # Create output directory if it doesn't exist
+    if not os.path.exists('data'):
+        os.mkdir('data')
+
+    # Save the FITS file
+    fits_filename = 'data/identity_wcs.fits'
+    hdu.writeto(fits_filename, overwrite=True)
+
+    return fits_filename
+
+def create_test_fits_enhanced():
+    """
+    Create two test FITS files with more pronounced WCS differences and larger SIP coefficients
+    for better visibility of distortion effects
+    """
+    # Create simple test images (50x50 for faster processing)
+    source_data = np.random.normal(100, 5, (50, 50))
+    target_data = np.random.normal(100, 5, (50, 50))
+
+    # Add a few Gaussian sources to source image
+    source_sources = [
+        (15, 15, 50, 2, 2),  # x, y, amplitude, sigma_x, sigma_y
+        (35, 35, 40, 2, 2),
+        (25, 35, 45, 2, 2),
+    ]
+
+    for x, y, amp, sig_x, sig_y in source_sources:
+        source_data += create_gaussian_source(x, y, amp, sig_x, sig_y, source_data.shape)
+
+    # Add corresponding sources to target image with more significant shifts
+    target_sources = [
+        (19, 18, 50, 2, 2),  # Shifted by 4,3 pixels instead of just 1
+        (38, 39, 40, 2, 2),  # Shifted by 3,4 pixels
+        (28, 37, 45, 2, 2),  # Shifted by 3,2 pixels
+    ]
+
+    for x, y, amp, sig_x, sig_y in target_sources:
+        target_data += create_gaussian_source(x, y, amp, sig_x, sig_y, target_data.shape)
+
+    # Create primary HDUs
+    source_hdu = fits.PrimaryHDU(source_data)
+    target_hdu = fits.PrimaryHDU(target_data)
+
+    # Source WCS header - extremely simple
+    source_hdu.header['CTYPE1'] = 'RA---TAN-SIP'
+    source_hdu.header['CTYPE2'] = 'DEC--TAN-SIP'
+    source_hdu.header['CRVAL1'] = 150.0  # RA of reference pixel
+    source_hdu.header['CRVAL2'] = 30.0  # DEC of reference pixel
+    source_hdu.header['CRPIX1'] = 25.0  # Center of image
+    source_hdu.header['CRPIX2'] = 25.0  # Center of image
+    source_hdu.header['CDELT1'] = -0.001  # Degree increment along x-axis
+    source_hdu.header['CDELT2'] = 0.001  # Degree increment along y-axis
+    source_hdu.header['PC1_1'] = 1.0  # Identity matrix - no rotation
+    source_hdu.header['PC1_2'] = 0.0
+    source_hdu.header['PC2_1'] = 0.0
+    source_hdu.header['PC2_2'] = 1.0
+
+    # Target WCS header - more significant differences
+    target_hdu.header['CTYPE1'] = 'RA---TAN-SIP'
+    target_hdu.header['CTYPE2'] = 'DEC--TAN-SIP'
+    target_hdu.header['CRVAL1'] = 150.05  # Increased to 0.05 degree offset
+    target_hdu.header['CRVAL2'] = 30.07  # Increased to 0.07 degree offset
+    target_hdu.header['CRPIX1'] = 28.0  # Increased to 3 pixel offset
+    target_hdu.header['CRPIX2'] = 27.0  # Increased to 2 pixel offset
+    target_hdu.header['CDELT1'] = -0.00105  # Slight scale difference
+    target_hdu.header['CDELT2'] = 0.00095  # Slight scale difference
+    target_hdu.header['PC1_1'] = 0.995  # More significant rotation
+    target_hdu.header['PC1_2'] = -0.025
+    target_hdu.header['PC2_1'] = 0.025
+    target_hdu.header['PC2_2'] = 0.995
+
+    # Add more significant SIP information
+    # Source SIP - higher order coefficients
+    source_hdu.header['A_ORDER'] = 3  # Increased to 3rd order
+    source_hdu.header['B_ORDER'] = 3
+    source_hdu.header['AP_ORDER'] = 3
+    source_hdu.header['BP_ORDER'] = 3
+
+    # Forward SIP - larger coefficients
+    source_hdu.header['A_1_1'] = 5.0e-7  # 50x larger
+    source_hdu.header['A_2_0'] = 2.5e-7  # 50x larger
+    source_hdu.header['A_0_2'] = 1.5e-7  # New term
+    source_hdu.header['A_3_0'] = 7.0e-8  # New 3rd order term
+    source_hdu.header['B_1_1'] = 5.0e-7  # 50x larger
+    source_hdu.header['B_0_2'] = 2.5e-7  # 50x larger
+    source_hdu.header['B_2_0'] = 1.5e-7  # New term
+    source_hdu.header['B_0_3'] = 7.0e-8  # New 3rd order term
+
+    # Inverse SIP - corresponding larger coefficients
+    source_hdu.header['AP_0_0'] = 0.0  # Zero constant term
+    source_hdu.header['AP_1_1'] = -5.0e-7  # Opposite of forward
+    source_hdu.header['AP_2_0'] = -2.5e-7
+    source_hdu.header['AP_0_2'] = -1.5e-7
+    source_hdu.header['AP_3_0'] = -7.0e-8
+    source_hdu.header['BP_0_0'] = 0.0
+    source_hdu.header['BP_1_1'] = -5.0e-7
+    source_hdu.header['BP_0_2'] = -2.5e-7
+    source_hdu.header['BP_2_0'] = -1.5e-7
+    source_hdu.header['BP_0_3'] = -7.0e-8
+
+    # Target has different SIP coefficients to create more distortion
+    target_hdu.header['A_ORDER'] = 3
+    target_hdu.header['B_ORDER'] = 3
+    target_hdu.header['AP_ORDER'] = 3
+    target_hdu.header['BP_ORDER'] = 3
+
+    # Different and asymmetric distortion pattern
+    target_hdu.header['A_1_1'] = 8.0e-7  # Different from source
+    target_hdu.header['A_2_0'] = 4.0e-7
+    target_hdu.header['A_0_2'] = 3.0e-7
+    target_hdu.header['A_3_0'] = 1.2e-7
+    target_hdu.header['A_0_3'] = 9.0e-8  # New term not in source
+    target_hdu.header['B_1_1'] = 7.5e-7  # Different from source
+    target_hdu.header['B_0_2'] = 3.5e-7
+    target_hdu.header['B_2_0'] = 2.8e-7
+    target_hdu.header['B_0_3'] = 1.0e-7
+    target_hdu.header['B_3_0'] = 8.0e-8  # New term not in source
+
+    # Corresponding inverse terms
+    target_hdu.header['AP_0_0'] = 0.0
+    target_hdu.header['AP_1_1'] = -8.0e-7
+    target_hdu.header['AP_2_0'] = -4.0e-7
+    target_hdu.header['AP_0_2'] = -3.0e-7
+    target_hdu.header['AP_3_0'] = -1.2e-7
+    target_hdu.header['AP_0_3'] = -9.0e-8
+    target_hdu.header['BP_0_0'] = 0.0
+    target_hdu.header['BP_1_1'] = -7.5e-7
+    target_hdu.header['BP_0_2'] = -3.5e-7
+    target_hdu.header['BP_2_0'] = -2.8e-7
+    target_hdu.header['BP_0_3'] = -1.0e-7
+    target_hdu.header['BP_3_0'] = -8.0e-8
+
+    # Write files
+    if not os.path.exists('data'):
+        os.mkdir('data')
+    source_hdu.writeto('data/test_source_enhanced.fits', overwrite=True)
+    target_hdu.writeto('data/test_target_enhanced.fits', overwrite=True)
+
+    return 'data/test_source_enhanced.fits', 'data/test_target_enhanced.fits'
+
 def main():
     source_file, target_file = create_test_fits()
     print(f"Created source file: {source_file}")
