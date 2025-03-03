@@ -4,26 +4,31 @@ import astropy
 import numpy as np
 import torch
 from astropy.io import fits
+from astropy.io.fits import PrimaryHDU
+from astropy.wcs import WCS
 
 from reprojection.utils import get_device
-from astropy.io.fits import Header, PrimaryHDU
-from astropy.wcs import WCS
+
 EPSILON = 1e-10
 
 
 @torch.jit.script
-def interpolate_image(source_image: torch.Tensor, grid: torch.Tensor, interpolation_mode: str) -> torch.Tensor:
+def interpolate_image(
+    source_image: torch.Tensor, grid: torch.Tensor, interpolation_mode: str
+) -> torch.Tensor:
     """JIT-compiled image interpolation using grid_sample"""
     return torch.nn.functional.grid_sample(
         source_image,
         grid,
         mode=interpolation_mode,
         align_corners=True,
-        padding_mode='zeros'
+        padding_mode="zeros",
     )
 
 
-def get_sip_coeffs(wcs: astropy.wcs.WCS) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+def get_sip_coeffs(
+    wcs: astropy.wcs.WCS,
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Extract SIP polynomial coefficients from a WCS object.
 
@@ -40,33 +45,35 @@ def get_sip_coeffs(wcs: astropy.wcs.WCS) -> Tuple[torch.Tensor, torch.Tensor, to
     sip_coeffs = {}
 
     # Check if SIP distortion is present
-    sip = getattr(wcs.wcs, 'sip', None)
+    sip = getattr(wcs.wcs, "sip", None)
     if sip is None:
         return None
 
     # Extract the SIP matrices
-    sip_coeffs['a_order'] = sip.a_order
-    sip_coeffs['b_order'] = sip.b_order
-    sip_coeffs['a'] = sip.a
-    sip_coeffs['b'] = sip.b
+    sip_coeffs["a_order"] = sip.a_order
+    sip_coeffs["b_order"] = sip.b_order
+    sip_coeffs["a"] = sip.a
+    sip_coeffs["b"] = sip.b
 
     # Check for inverse coefficients
-    if hasattr(sip, 'ap_order') and sip.ap_order > 0:
-        sip_coeffs['ap_order'] = sip.ap_order
-        sip_coeffs['ap'] = sip.ap
+    if hasattr(sip, "ap_order") and sip.ap_order > 0:
+        sip_coeffs["ap_order"] = sip.ap_order
+        sip_coeffs["ap"] = sip.ap
     else:
-        sip_coeffs['ap_order'] = 0
+        sip_coeffs["ap_order"] = 0
 
-    if hasattr(sip, 'bp_order') and sip.bp_order > 0:
-        sip_coeffs['bp_order'] = sip.bp_order
-        sip_coeffs['bp'] = sip.bp
+    if hasattr(sip, "bp_order") and sip.bp_order > 0:
+        sip_coeffs["bp_order"] = sip.bp_order
+        sip_coeffs["bp"] = sip.bp
     else:
-        sip_coeffs['bp_order'] = 0
+        sip_coeffs["bp_order"] = 0
 
     return sip_coeffs
 
 
-def apply_sip_distortion(u: torch.Tensor, v: torch.Tensor, sip_coeffs: Tuple, device: str='cpu'):
+def apply_sip_distortion(
+    u: torch.Tensor, v: torch.Tensor, sip_coeffs: Tuple, device: str = "cpu"
+):
     """
     Apply SIP distortion to intermediate pixel coordinates.
 
@@ -93,11 +100,11 @@ def apply_sip_distortion(u: torch.Tensor, v: torch.Tensor, sip_coeffs: Tuple, de
         v = torch.tensor(v, device=device)
 
     # Get the SIP orders
-    a_order = sip_coeffs['a_order']
+    a_order = sip_coeffs["a_order"]
 
     # Convert coefficient matrices to tensors
-    a_matrix = torch.tensor(sip_coeffs['a'], device=device)
-    b_matrix = torch.tensor(sip_coeffs['b'], device=device)
+    a_matrix = torch.tensor(sip_coeffs["a"], device=device)
+    b_matrix = torch.tensor(sip_coeffs["b"], device=device)
 
     # Initialize correction terms
     f_u = torch.zeros_like(u)
@@ -117,7 +124,7 @@ def apply_sip_distortion(u: torch.Tensor, v: torch.Tensor, sip_coeffs: Tuple, de
                 continue  # Skip the 0,0 term
 
             # Compute u^i * v^j for all points
-            pow_term = (u_flat ** i) * (v_flat ** j)
+            pow_term = (u_flat**i) * (v_flat**j)
 
             # Apply coefficient
             f_u_flat += a_matrix[i, j] * pow_term
@@ -138,7 +145,9 @@ def apply_sip_distortion(u: torch.Tensor, v: torch.Tensor, sip_coeffs: Tuple, de
     return u_corrected, v_corrected
 
 
-def apply_inverse_sip_distortion(u: torch.Tensor, v:torch.Tensor, sip_coeffs:Tuple, device: str='cpu'):
+def apply_inverse_sip_distortion(
+    u: torch.Tensor, v: torch.Tensor, sip_coeffs: Tuple, device: str = "cpu"
+):
     """
     Apply inverse SIP distortion to go from distorted to intermediate coordinates.
 
@@ -160,7 +169,7 @@ def apply_inverse_sip_distortion(u: torch.Tensor, v:torch.Tensor, sip_coeffs:Tup
         return u, v
 
     # Check if inverse coefficients are available
-    if sip_coeffs['ap_order'] == 0 or sip_coeffs['bp_order'] == 0:
+    if sip_coeffs["ap_order"] == 0 or sip_coeffs["bp_order"] == 0:
         # Use iterative method if inverse coefficients aren't available
         return iterative_inverse_sip(u, v, sip_coeffs, device)
 
@@ -170,11 +179,11 @@ def apply_inverse_sip_distortion(u: torch.Tensor, v:torch.Tensor, sip_coeffs:Tup
         v = torch.tensor(v, device=device)
 
     # Get the SIP orders
-    ap_order = sip_coeffs['ap_order']
+    ap_order = sip_coeffs["ap_order"]
 
     # Convert coefficient matrices to tensors
-    ap_matrix = torch.tensor(sip_coeffs['ap'], device=device)
-    bp_matrix = torch.tensor(sip_coeffs['bp'], device=device)
+    ap_matrix = torch.tensor(sip_coeffs["ap"], device=device)
+    bp_matrix = torch.tensor(sip_coeffs["bp"], device=device)
 
     # Initialize correction terms
     f_u = torch.zeros_like(u)
@@ -194,7 +203,7 @@ def apply_inverse_sip_distortion(u: torch.Tensor, v:torch.Tensor, sip_coeffs:Tup
                 continue  # Skip the 0,0 term
 
             # Compute u^i * v^j for all points
-            pow_term = (u_flat ** i) * (v_flat ** j)
+            pow_term = (u_flat**i) * (v_flat**j)
 
             # Apply coefficient
             f_u_flat += ap_matrix[i, j] * pow_term
@@ -214,7 +223,15 @@ def apply_inverse_sip_distortion(u: torch.Tensor, v:torch.Tensor, sip_coeffs:Tup
 
     return u_corrected, v_corrected
 
-def iterative_inverse_sip(u: torch.Tensor, v: torch.Tensor, sip_coeffs: Tuple, device: str='cpu', max_iter: int=20, tol: float=1e-8):
+
+def iterative_inverse_sip(
+    u: torch.Tensor,
+    v: torch.Tensor,
+    sip_coeffs: Tuple,
+    device: str = "cpu",
+    max_iter: int = 20,
+    tol: float = 1e-8,
+):
     """
     Iteratively solve for undistorted coordinates when inverse SIP coefficients
     are not available.
@@ -255,7 +272,9 @@ def iterative_inverse_sip(u: torch.Tensor, v: torch.Tensor, sip_coeffs: Tuple, d
         v_error = v - v_pred
 
         # Check convergence
-        max_error = torch.max(torch.abs(torch.cat([u_error.flatten(), v_error.flatten()])))
+        max_error = torch.max(
+            torch.abs(torch.cat([u_error.flatten(), v_error.flatten()]))
+        )
         if max_error < tol:
             break
 
@@ -264,6 +283,7 @@ def iterative_inverse_sip(u: torch.Tensor, v: torch.Tensor, sip_coeffs: Tuple, d
         v_undist = v_undist + v_error
 
     return u_undist, v_undist
+
 
 class Reproject:
     def __init__(self, source_hdu: PrimaryHDU, target_hdu: PrimaryHDU):
@@ -303,8 +323,12 @@ class Reproject:
         self.device = get_device()
 
         # Initialize data
-        self.target_image = torch.tensor(target_hdu.data, dtype=torch.float64, device=self.device)
-        self.source_image = torch.tensor(source_hdu.data, dtype=torch.float64, device=self.device)
+        self.target_image = torch.tensor(
+            target_hdu.data, dtype=torch.float64, device=self.device
+        )
+        self.source_image = torch.tensor(
+            source_hdu.data, dtype=torch.float64, device=self.device
+        )
 
         # Initialize the WCS objects
         self.target_wcs_astropy = WCS(target_hdu.header)
@@ -312,18 +336,20 @@ class Reproject:
 
         # Define target grid
         self.target_grid = torch.meshgrid(
-            torch.arange(self.target_image.shape[0], dtype=torch.float64, device=self.device),  # height
-            torch.arange(self.target_image.shape[1], dtype=torch.float64, device=self.device),  # width
-            indexing='ij',  # y, x
+            torch.arange(
+                self.target_image.shape[0], dtype=torch.float64, device=self.device
+            ),  # height
+            torch.arange(
+                self.target_image.shape[1], dtype=torch.float64, device=self.device
+            ),  # width
+            indexing="ij",  # y, x
         )
-
-
 
     def calculate_skyCoords(self, x=None, y=None):
         """Calculate sky coordinates using Astropy WCS implementation."""
         # Get target grid if not provided
         if x is None or y is None:
-            y, x  = self.target_grid
+            y, x = self.target_grid
 
         CRPIX1 = self.target_wcs_astropy.wcs.crpix[0]
         CRPIX2 = self.target_wcs_astropy.wcs.crpix[1]
@@ -376,7 +402,7 @@ class Reproject:
 
         # Step 3: Use the exact tanx2s logic from WCSLib
         # Compute the radial distance
-        r = torch.sqrt(x_scaled ** 2 + y_scaled ** 2)
+        r = torch.sqrt(x_scaled**2 + y_scaled**2)
         r0 = torch.tensor(180.0 / torch.pi, device=self.device)  # R2D from WCSLib
 
         # Apply the tanx2s function exactly as in WCSLib
@@ -384,7 +410,9 @@ class Reproject:
         phi = torch.zeros_like(r)
         non_zero_r = r != 0
         if torch.any(non_zero_r):
-            phi[non_zero_r] = torch.rad2deg(torch.atan2(-x_scaled[non_zero_r], y_scaled[non_zero_r]))
+            phi[non_zero_r] = torch.rad2deg(
+                torch.atan2(-x_scaled[non_zero_r], y_scaled[non_zero_r])
+            )
 
         theta = torch.rad2deg(torch.atan2(r0, r))
 
@@ -421,14 +449,16 @@ class Reproject:
     def calculate_sourceCoords(self):
         """Calculate source image pixel coordinates corresponding to each target image pixel."""
         # Get sky coordinates in radians
-        ra, dec= self.calculate_skyCoords()
+        ra, dec = self.calculate_skyCoords()
 
         # Get WCS parameters
         CRPIX1 = self.source_wcs_astropy.wcs.crpix[0]
         CRPIX2 = self.source_wcs_astropy.wcs.crpix[1]
         CRVAL1 = self.source_wcs_astropy.wcs.crval[0]  # Reference RA
         CRVAL2 = self.source_wcs_astropy.wcs.crval[1]  # Reference Dec
-        PC_matrix = torch.tensor(self.source_wcs_astropy.wcs.get_pc(), device=self.device)
+        PC_matrix = torch.tensor(
+            self.source_wcs_astropy.wcs.get_pc(), device=self.device
+        )
         CDELT = torch.tensor(self.source_wcs_astropy.wcs.cdelt, device=self.device)
         # Get SIP coefficients if present
         sip_coeffs = get_sip_coeffs(self.source_wcs_astropy)
@@ -476,7 +506,9 @@ class Reproject:
         phi = atan2d(y_phi, x_phi)
 
         # Calculate native latitude (theta)
-        theta = torch.rad2deg(torch.arcsin(sin_dec * sin_dec0 + cos_dec * cos_dec0 * cos_delta_ra))
+        theta = torch.rad2deg(
+            torch.arcsin(sin_dec * sin_dec0 + cos_dec * cos_dec0 * cos_delta_ra)
+        )
 
         # Step 2: Apply the TAN projection (tans2x function from WCSLib)
         # Calculate sine and cosine of phi and theta
@@ -508,7 +540,9 @@ class Reproject:
 
         # Handle batch processing for arrays
         if ra.dim() == 0:  # scalar inputs
-            standard_coords = torch.tensor([x_scaled.item(), y_scaled.item()], device=self.device)
+            standard_coords = torch.tensor(
+                [x_scaled.item(), y_scaled.item()], device=self.device
+            )
             pixel_offsets = torch.matmul(CD_inv, standard_coords)
             u = pixel_offsets[0]
             v = pixel_offsets[1]
@@ -523,7 +557,9 @@ class Reproject:
                 y_scaled_flat = y_scaled
 
             # Stack for batch matrix multiplication
-            standard_coords = torch.stack([x_scaled_flat, y_scaled_flat], dim=1)  # Shape: [N, 2]
+            standard_coords = torch.stack(
+                [x_scaled_flat, y_scaled_flat], dim=1
+            )  # Shape: [N, 2]
 
             # Use batch matrix multiplication
             pixel_offsets = torch.matmul(standard_coords, CD_inv.T)  # Shape: [N, 2]
@@ -545,7 +581,7 @@ class Reproject:
 
         return x_pixel, y_pixel
 
-    def interpolate_source_image(self, interpolation_mode='bilinear'):
+    def interpolate_source_image(self, interpolation_mode="bilinear"):
         """
         Interpolate the source image at the calculated source coordinates with flux conservation.
 
@@ -604,7 +640,7 @@ class Reproject:
         y_normalized = 2.0 * (y_source / (H - 1)) - 1.0
 
         # Calculate origin flux
-        #original_total_flux = torch.sum(self.source_image)
+        # original_total_flux = torch.sum(self.source_image)
         # Stack coordinates into sampling grid
         grid = torch.stack([x_normalized, y_normalized], dim=-1)
 
@@ -625,13 +661,17 @@ class Reproject:
         valid_mask = footprint > 1e-6
         resampled[valid_mask] /= footprint[valid_mask]
         # Apply simple flux conservation
-        #new_total_flux = torch.sum(resampled)
-        #normalization_factor_flux = original_total_flux / new_total_flux if new_total_flux > 0 else 1
+        # new_total_flux = torch.sum(resampled)
+        # normalization_factor_flux = original_total_flux / new_total_flux if new_total_flux > 0 else 1
 
-        return resampled #* normalization_factor_flux
+        return resampled  # * normalization_factor_flux
 
 
-def calculate_reprojection(source_hdu: fits.PrimaryHDU, target_hdu: fits.PrimaryHDU, interpolation_mode='nearest'):
+def calculate_reprojection(
+    source_hdu: fits.PrimaryHDU,
+    target_hdu: fits.PrimaryHDU,
+    interpolation_mode="nearest",
+):
     """
     Reproject an astronomical image from a source WCS to a target WCS.
 

@@ -6,48 +6,54 @@
 
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../..'))  # Path to your package
+
+sys.path.insert(0, os.path.abspath("../.."))  # Path to your package
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'reprojection'
-copyright = '2025, Carter Rhea'
-author = 'Carter Rhea'
+project = "reprojection"
+copyright = "2025, Carter Rhea"
+author = "Carter Rhea"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-templates_path = ['_templates']
+templates_path = ["_templates"]
 exclude_patterns = []
 
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.mathjax',
-    'sphinx.ext.napoleon',
-    'sphinx.ext.intersphinx',
-    'autoapi.extension',
-    'nbsphinx',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.intersphinx",
+    "autoapi.extension",
+    "nbsphinx",
 ]
-nbsphinx_execute = 'auto'  # Execute notebooks automatically
+nbsphinx_execute = "auto"  # Execute notebooks automatically
 nbsphinx_allow_errors = False  # Don't build if notebooks have errors
 # Theme settings
-html_theme = 'sphinx_rtd_theme'
+html_theme = "sphinx_rtd_theme"
 html_theme_options = {
-    'navigation_depth': 4,
-    'logo_only': False,
+    "navigation_depth": 4,
+    "logo_only": False,
 }
 
 # AutoAPI settings
-autoapi_type = 'python'
-autoapi_dirs = ['../../src']  # Replace with your actual package name
-autoapi_options = ['members', 'undoc-members', 'show-inheritance', 'show-module-summary']
+autoapi_type = "python"
+autoapi_dirs = ["../../src"]  # Replace with your actual package name
+autoapi_options = [
+    "members",
+    "undoc-members",
+    "show-inheritance",
+    "show-module-summary",
+]
 
 # Intersphinx mapping
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3', None),
-    'numpy': ('https://numpy.org/doc/stable/', None),
-    'astropy': ('https://docs.astropy.org/en/stable/', None),
+    "python": ("https://docs.python.org/3", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "astropy": ("https://docs.astropy.org/en/stable/", None),
 }
 
 # Napoleon settings for Google-style docstrings

@@ -1,5 +1,6 @@
-import torch
 import math
+
+import torch
 
 
 def safe_tangent_projection(ra_rad, dec_rad, ra_0, dec_0):
@@ -23,8 +24,11 @@ def safe_tangent_projection(ra_rad, dec_rad, ra_0, dec_0):
     d_ra = ra_rad - ra_0_rad
 
     # Ensure d_ra is within [-pi, pi]
-    d_ra = torch.where(d_ra > math.pi, d_ra - 2 * math.pi,
-                       torch.where(d_ra < -math.pi, d_ra + 2 * math.pi, d_ra))
+    d_ra = torch.where(
+        d_ra > math.pi,
+        d_ra - 2 * math.pi,
+        torch.where(d_ra < -math.pi, d_ra + 2 * math.pi, d_ra),
+    )
 
     # Trigonometric terms
     cos_dec = torch.cos(dec_rad)
@@ -55,8 +59,12 @@ def debug_projection(ra_coords, dec_coords, ra_0, dec_0):
     x, y = safe_tangent_projection(ra_coords, dec_coords, ra_0, dec_0)
 
     print(f"Reference Point: RA_0 = {ra_0}, DEC_0 = {dec_0}")
-    print(f"Input RA range: {torch.rad2deg(ra_coords.min()):.5f} to {torch.rad2deg(ra_coords.max()):.5f}")
-    print(f"Input DEC range: {torch.rad2deg(dec_coords.min()):.5f} to {torch.rad2deg(dec_coords.max()):.5f}")
+    print(
+        f"Input RA range: {torch.rad2deg(ra_coords.min()):.5f} to {torch.rad2deg(ra_coords.max()):.5f}"
+    )
+    print(
+        f"Input DEC range: {torch.rad2deg(dec_coords.min()):.5f} to {torch.rad2deg(dec_coords.max()):.5f}"
+    )
     print(f"x range: {x.min():.5f} to {x.max():.5f}")
     print(f"y range: {y.min():.5f} to {y.max():.5f}")
 
