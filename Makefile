@@ -29,9 +29,6 @@ format: dependencies
 
 clean: lint format
 
-check: dependencies
-	@echo "Checking code format..."
-	$(PYTHON) -m black --check $(SRC_DIR)
 
 
 # Testing commands

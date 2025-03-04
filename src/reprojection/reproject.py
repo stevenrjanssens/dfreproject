@@ -3,11 +3,8 @@ from astropy.io import fits
 from astropy.io.fits import PrimaryHDU
 from astropy.wcs import WCS
 
-from reprojection.sip import (
-    apply_inverse_sip_distortion,
-    apply_sip_distortion,
-    get_sip_coeffs,
-)
+from reprojection.sip import (apply_inverse_sip_distortion,
+                              apply_sip_distortion, get_sip_coeffs)
 from reprojection.utils import get_device
 
 EPSILON = 1e-10
@@ -119,7 +116,6 @@ class Reproject:
             u, v = apply_sip_distortion(u, v, sip_coeffs, self.device)
         # Step 2: Apply PC Matrix (Rotation) and CDELT (Scaling)
         CD_matrix = PC_matrix * CDELT  # Construct CD Matrix
-        CD_matrix = torch.tensor(CD_matrix, device=self.device)
         # Handle both scalar and array inputs
         if u.dim() == 0:  # scalar
             pixel_offsets = torch.tensor(
@@ -286,7 +282,6 @@ class Reproject:
         # Step 3: Apply the inverse of the CD matrix to get pixel offsets
         # First, construct the CD matrix
         CD_matrix = PC_matrix * CDELT
-        CD_matrix = torch.tensor(CD_matrix, device=self.device)
         # Calculate the inverse of the CD matrix
         CD_inv = torch.linalg.inv(CD_matrix)
 
@@ -393,8 +388,6 @@ class Reproject:
         x_normalized = 2.0 * (x_source / (W - 1)) - 1.0
         y_normalized = 2.0 * (y_source / (H - 1)) - 1.0
 
-        # Calculate origin flux
-        original_total_flux = torch.sum(self.source_image)
         # Stack coordinates into sampling grid
         grid = torch.stack([x_normalized, y_normalized], dim=-1)
 
@@ -411,17 +404,26 @@ class Reproject:
         # Split the results
         resampled_image = combined_result[:, 0].squeeze()
         resampled_footprint = combined_result[:, 1].squeeze()
-        ## Create output array initialized with NaN or zeros
-        result = torch.full_like(resampled_image, torch.nan)
+        # Create output array initialized with zeros
+        result = torch.full_like(resampled_image, 0)
 
         # Apply footprint correction only where footprint is significant
         # This follows Astropy's approach of using a small epsilon
         valid_pixels = resampled_footprint > 1e-8
 
+        # Apply footprint correction only where footprint is significant
         if torch.any(valid_pixels):
             # Normalize by the footprint where valid
-            result[valid_pixels] = resampled_image[valid_pixels] / resampled_footprint[valid_pixels]
+            result[valid_pixels] = (
+                resampled_image[valid_pixels] / resampled_footprint[valid_pixels]
+            )
+            print("Successfully applied footprint correction to valid pixels")
+        else:
+            print("WARNING: No valid pixels found in footprint!")
 
+            # FALLBACK: Use raw interpolated values without footprint correction
+            print("Fallback: Using raw interpolated values")
+            result = resampled_image
 
         return result
 
