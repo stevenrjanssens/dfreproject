@@ -83,7 +83,7 @@ class TestCalculateReprojection:
 
         # Perform reprojection
         result = calculate_reprojection(
-            source_hdu=source_hdu,
+            source_hdus=source_hdu,
             target_hdu=target_hdu,
             interpolation_mode="bilinear"
         )
@@ -103,7 +103,7 @@ class TestCalculateReprojection:
         for mode in modes:
             # Perform reprojection with each mode
             result = calculate_reprojection(
-                source_hdu=source_hdu,
+                source_hdus=source_hdu,
                 target_hdu=target_hdu,
                 interpolation_mode=mode
             )
@@ -129,7 +129,7 @@ class TestCalculateReprojection:
 
         # Perform reprojection
         result = calculate_reprojection(
-            source_hdu=source_hdu,
+            source_hdus=source_hdu,
             target_hdu=target_hdu,
             interpolation_mode="bilinear"
         )
@@ -155,7 +155,7 @@ class TestCalculateReprojection:
 
         # Perform reprojection
         reprojected = calculate_reprojection(
-            source_hdu=source_hdu,
+            source_hdus=source_hdu,
             target_hdu=target_hdu,
             interpolation_mode="bilinear"
         )
@@ -199,7 +199,7 @@ class TestCalculateReprojection:
 
         # Call the function
         result = calculate_reprojection(
-            source_hdu=source_hdu,
+            source_hdus=source_hdu,
             target_hdu=target_hdu,
             interpolation_mode="bilinear"
         )
@@ -208,6 +208,6 @@ class TestCalculateReprojection:
         assert len(calls) == 1
         init_args, init_kwargs = calls[0]
 
-        # Check source_hdu and target_hdu were passed correctly
-        assert init_kwargs.get('source_hdu') is source_hdu
+        # Check source_hdus and target_hdu were passed correctly
+        assert source_hdu in init_kwargs.get('source_hdus')
         assert init_kwargs.get('target_hdu') is target_hdu

@@ -20,7 +20,7 @@ class TestCoordinateTransformations:
 
         if hasattr(target_hdul[0], 'data') and target_hdul[0].data is not None:
             target_hdul[0].data = np.asarray(target_hdul[0].data, dtype=np.float64).copy()
-        self.transformer = Reproject(source_hdul[0], source_hdul[0])
+        self.transformer = Reproject([source_hdul[0]], source_hdul[0])
 
         # Define test pixel coordinates
         self.test_pixels = [
@@ -38,30 +38,29 @@ class TestCoordinateTransformations:
     ])
     def test_specific_coordinates(self, x, y, expected_ra, expected_dec, device):
         """Test specific coordinate pairs with known results."""
-        # Convert coordinates to torch tensors
-        x_tensor = torch.tensor(x, dtype=torch.float64, device=device)
-        y_tensor = torch.tensor(y, dtype=torch.float64, device=device)
+        # Convert coordinates to torch tensors with batch dimension
+        x_tensor = torch.tensor([[x]], dtype=torch.float64, device=device)
+        y_tensor = torch.tensor([[y]], dtype=torch.float64, device=device)
 
         # Transform coordinates
-        ra, dec = self.transformer.calculate_skyCoords(x_tensor, y_tensor)
+        ra, dec = self.transformer.calculate_skyCoords(x_grid=x_tensor, y_grid=y_tensor)
 
-        # Check results
-        assert pytest.approx(ra.item(), abs=1e-2) == expected_ra
-        assert pytest.approx(dec.item(), abs=1e-2) == expected_dec
+        # Check results (extract first element due to batch dimension)
+        assert pytest.approx(ra[0, 0].item(), abs=1e-2) == expected_ra
+        assert pytest.approx(dec[0, 0].item(), abs=1e-2) == expected_dec
 
 
     def test_sky_coords_reference_pixel(self, device):
         """Test that reference pixel maps to reference sky coords."""
         # Transform reference pixel
-        x = torch.tensor(100, device=device, dtype=torch.float64)
-        y = torch.tensor(100, device=device, dtype=torch.float64)
+        x = torch.tensor([[100]], device=device, dtype=torch.float64)
+        y = torch.tensor([[100]], device=device, dtype=torch.float64)
 
         ra, dec = self.transformer.calculate_skyCoords(x, y)
 
         # Check against expected values
         assert pytest.approx(ra.item(), abs=1e-2) == 150.0
         assert pytest.approx(dec.item(), abs=1e-2) == 30.0
-
 
     def test_sky_coords_batch_processing(self, device):
         """Test batch processing of multiple coordinates."""
@@ -70,7 +69,7 @@ class TestCoordinateTransformations:
 
         grid_y, grid_x = get_test_grid(shape=(10, 10), start=(50, 50), end=(150, 150))
 
-        # Convert to torch tensors
+        # Convert to torch tensors with batch dimension
         grid_x = torch.tensor(grid_x, dtype=torch.float64, device=device)
         grid_y = torch.tensor(grid_y, dtype=torch.float64, device=device)
 
@@ -78,11 +77,11 @@ class TestCoordinateTransformations:
         ra, dec = self.transformer.calculate_skyCoords(grid_x, grid_y)
 
         # Check expected shape
-        assert ra.shape == (10, 10)
-        assert dec.shape == (10, 10)
+        assert ra.shape == (1, 10, 10)
+        assert dec.shape == (1, 10, 10)
 
         # Also check some values - the center should be near the reference point
-        center_idx = (5, 5)  # Middle of the 10x10 grid
+        center_idx = (0, 5, 5)  # Middle of the 10x10 grid
         assert pytest.approx(ra[center_idx].item(), abs=0.5) == 150.0
         assert pytest.approx(dec[center_idx].item(), abs=0.5) == 30.0
 
@@ -98,15 +97,12 @@ class TestCoordinateTransformations:
         source_x, source_y = self.transformer.calculate_sourceCoords()
 
         # Check roundtrip accuracy - within 1e-5 pixel
-        assert torch.allclose(orig_x[0], source_x[100, 100], atol=1e-2)
-        assert torch.allclose(orig_y[0], source_y[100, 100], atol=1e-2)
+        assert torch.allclose(orig_x[0], source_x[0, 100, 100], atol=1e-2)
+        assert torch.allclose(orig_y[0], source_y[0, 100, 100], atol=1e-2)
 
         # Check roundtrip accuracy - within 1e-5 pixel
-        assert torch.allclose(orig_x[1], source_x[150, 150], atol=1e-2)
-        assert torch.allclose(orig_y[1], source_y[150, 150], atol=1e-2)
-
-
-
+        assert torch.allclose(orig_x[1], source_x[0, 150, 150], atol=1e-2)
+        assert torch.allclose(orig_y[1], source_y[0, 150, 150], atol=1e-2)
 
     def test_compare_with_astropy(self, simple_wcs, device):
         """Compare results with Astropy WCS for validation."""
@@ -120,11 +116,13 @@ class TestCoordinateTransformations:
 
         # Our implementation results
         our_ra, our_dec = self.transformer.calculate_skyCoords(
-            torch.tensor(test_x, dtype=torch.float64, device=device),
-            torch.tensor(test_y, dtype=torch.float64, device=device)
+            torch.tensor(test_x, dtype=torch.float64, device=device).unsqueeze(0),
+            torch.tensor(test_y, dtype=torch.float64, device=device).unsqueeze(0)
         )
-        our_ra = our_ra.cpu().numpy()
-        our_dec = our_dec.cpu().numpy()
+
+        # Remove batch dimension and convert to numpy
+        our_ra = our_ra.squeeze(0).squeeze(0).cpu().numpy()
+        our_dec = our_dec.squeeze(0).squeeze(0).cpu().numpy()
 
         # Compare results - should be close within a small tolerance
         np.testing.assert_allclose(our_ra, astropy_ra, rtol=1e-2)
@@ -145,8 +143,8 @@ class TestCoordinateTransformations:
         ]
 
         for x, y in edge_coords:
-            x_tensor = torch.tensor(x, dtype=torch.float32, device=device)
-            y_tensor = torch.tensor(y, dtype=torch.float32, device=device)
+            x_tensor = torch.tensor([[x]], dtype=torch.float64, device=device)
+            y_tensor = torch.tensor([[y]], dtype=torch.float64, device=device)
 
             # Transform coordinates
             ra, dec = self.transformer.calculate_skyCoords(x_tensor, y_tensor)

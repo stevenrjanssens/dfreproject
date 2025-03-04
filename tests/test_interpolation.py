@@ -28,7 +28,7 @@ class TestInterpolationIntegration:
         from reprojection.reproject import Reproject
 
         # Create actual instance
-        reproject = Reproject(source_hdu, target_hdu)
+        reproject = Reproject([source_hdu], target_hdu)
 
         # Set device if needed
         if hasattr(reproject, 'set_device'):
@@ -41,7 +41,7 @@ class TestInterpolationIntegration:
         reproject = setup_real_projection
 
         # Get original flux
-        original_flux = reproject.source_image.sum().item()
+        original_flux = reproject.batch_source_images[0].sum().item()
 
         # Perform interpolation
         result = reproject.interpolate_source_image(interpolation_mode="bilinear")
@@ -70,7 +70,7 @@ class TestInterpolationIntegration:
             assert not torch.isinf(result).any()
 
             # Basic shape check
-            assert result.shape == reproject.target_grid[0].shape
+            assert result.unsqueeze(0).shape == reproject.target_grid[0].shape
 
     def test_large_rotation(self, device):
         """Test a large rotation transformation."""
@@ -109,7 +109,7 @@ class TestInterpolationIntegration:
         from reprojection.reproject import Reproject
 
         # Create reproject instance
-        reproject = Reproject(source_hdu, target_hdu)
+        reproject = Reproject([source_hdu], target_hdu)
 
         # Set device if needed
         if hasattr(reproject, 'set_device'):
