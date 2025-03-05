@@ -74,17 +74,18 @@ class TestCalculateReprojection:
         source_hdu.writeto(source_file, overwrite=True)
         target_hdu.writeto(target_file, overwrite=True)
 
-        return source_hdu, target_hdu, source_file, target_file
+        return source_hdu, target_hdu, source_file, target_file, target_wcs
 
     def test_basic_reprojection(self, simple_source_target_pair):
         """Test that the function performs basic reprojection correctly."""
-        source_hdu, target_hdu, _, _ = simple_source_target_pair
+        source_hdu, target_hdu, _, _, target_wcs = simple_source_target_pair
 
 
         # Perform reprojection
         result = calculate_reprojection(
             source_hdus=source_hdu,
-            target_hdu=target_hdu,
+            target_wcs=target_wcs,
+            shape_out=target_hdu.data.shape,
             interpolation_mode="bilinear"
         )
 
@@ -96,7 +97,7 @@ class TestCalculateReprojection:
 
     def test_all_interpolation_modes(self, simple_source_target_pair):
         """Test all supported interpolation modes."""
-        source_hdu, target_hdu, _, _ = simple_source_target_pair
+        source_hdu, target_hdu, _, _, target_wcs = simple_source_target_pair
 
         modes = ["nearest", "bilinear", "bicubic"]
 
@@ -104,7 +105,8 @@ class TestCalculateReprojection:
             # Perform reprojection with each mode
             result = calculate_reprojection(
                 source_hdus=source_hdu,
-                target_hdu=target_hdu,
+                target_wcs=target_wcs,
+                shape_out=target_hdu.data.shape,
                 interpolation_mode=mode
             )
 
@@ -130,7 +132,8 @@ class TestCalculateReprojection:
         # Perform reprojection
         result = calculate_reprojection(
             source_hdus=source_hdu,
-            target_hdu=target_hdu,
+            target_wcs=WCS(target_hdu.header),
+            shape_out=target_hdu.data.shape,
             interpolation_mode="bilinear"
         )
 
@@ -140,7 +143,7 @@ class TestCalculateReprojection:
 
     def test_end_to_end_workflow(self, simple_source_target_pair, test_data_dir):
         """Test a complete workflow including saving results to a new FITS file."""
-        _, _, source_file, target_file = simple_source_target_pair
+        _, _, source_file, target_file, target_wcs = simple_source_target_pair
 
         # Load from files
         source_hdu = fits.open(source_file)[0]
@@ -156,7 +159,8 @@ class TestCalculateReprojection:
         # Perform reprojection
         reprojected = calculate_reprojection(
             source_hdus=source_hdu,
-            target_hdu=target_hdu,
+            target_wcs=WCS(target_hdu.header),
+            shape_out=target_hdu.data.shape,
             interpolation_mode="bilinear"
         )
 
@@ -175,7 +179,7 @@ class TestCalculateReprojection:
 
     def test_correct_reproject_instance_created(self, simple_source_target_pair, monkeypatch):
         """Test that the function creates a Reproject instance with the correct parameters."""
-        source_hdu, target_hdu, _, _ = simple_source_target_pair
+        source_hdu, target_hdu, _, _, target_wcs = simple_source_target_pair
 
         # Create a mock to track how Reproject is called
         original_init = Reproject.__init__
@@ -200,7 +204,8 @@ class TestCalculateReprojection:
         # Call the function
         result = calculate_reprojection(
             source_hdus=source_hdu,
-            target_hdu=target_hdu,
+            target_wcs=target_wcs,
+            shape_out=target_hdu.data.shape,
             interpolation_mode="bilinear"
         )
 
@@ -210,4 +215,3 @@ class TestCalculateReprojection:
 
         # Check source_hdus and target_hdu were passed correctly
         assert source_hdu in init_kwargs.get('source_hdus')
-        assert init_kwargs.get('target_hdu') is target_hdu

@@ -3,6 +3,7 @@ import torch
 import numpy as np
 from reprojection.reproject import Reproject
 from astropy.io import fits
+from astropy.wcs import WCS
 
 @pytest.mark.unit
 class TestCoordinateTransformations:
@@ -20,7 +21,7 @@ class TestCoordinateTransformations:
 
         if hasattr(target_hdul[0], 'data') and target_hdul[0].data is not None:
             target_hdul[0].data = np.asarray(target_hdul[0].data, dtype=np.float64).copy()
-        self.transformer = Reproject([source_hdul[0]], source_hdul[0])
+        self.transformer = Reproject([source_hdul[0]], WCS(source_hdul[0].header), shape_out=target_hdul[0].data.shape,)
 
         # Define test pixel coordinates
         self.test_pixels = [

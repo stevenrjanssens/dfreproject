@@ -25,7 +25,7 @@ def interpolate_image(
 
 
 class Reproject:
-    def __init__(self, source_hdus: List[PrimaryHDU], target_hdu: PrimaryHDU):
+    def __init__(self, source_hdus: List[PrimaryHDU], target_wcs: WCS, shape_out: Tuple[int, int]):
         """
         Initialize a reprojection operation between source and target image frames.
 
@@ -39,9 +39,11 @@ class Reproject:
         source_hdus : List[PrimaryHDU]
             List of HDUs containing the data and the header information for the source image
 
-        target_hdu : PrimaryHDU
-            HDU containing the data and the header information for the target image
+        target_wcs : WCS
+            WCS for the target
 
+        shape_out: Tuple[int, int]
+            Shape of the output image
 
         Notes
         -----
@@ -55,28 +57,21 @@ class Reproject:
         Examples
         --------
         >>> # Initialize the reprojection object
-        >>> reproject = Reproject(source_hdus, target_hdu)
+        >>> reproject = Reproject(source_hdus, target_wcs)
 
         """
         # Set device
         self.device = get_device()
 
-        # Initialize data
-        try:
-            self.target_image = torch.tensor(
-                target_hdu.data, dtype=torch.float64, device=self.device
-            )
-        except ValueError:  # Need to swap order of bytes
-            self.target_image = torch.tensor(
-                np.asarray(target_hdu.data, dtype=np.float64).copy(), dtype=torch.float64, device=self.device
-            )
+
         self.batch_source_images = self._prepare_source_images(source_hdus)
         # Initialize the WCS objects
         self.batch_source_wcs_params = self._prepare_batch_wcs_params(source_hdus)
-        self.target_wcs_params = self._extract_wcs_params(WCS(target_hdu.header))
+        self.target_wcs_params = self._extract_wcs_params(target_wcs)
 
         # Define target grid
-        self.target_grid = self._create_batch_target_grid()
+        self.target_grid = self._create_batch_target_grid(shape_out)
+
 
     def _prepare_source_images(self, source_hdus: List[PrimaryHDU]) -> torch.Tensor:
         """Prepare batch of source images as a single tensor"""
@@ -110,13 +105,13 @@ class Reproject:
         """Prepare batch of WCS parameters"""
         return [self._extract_wcs_params(WCS(hdu.header)) for hdu in source_hdus]
 
-    def _create_batch_target_grid(self) -> Tuple[torch.Tensor, torch.Tensor]:
+    def _create_batch_target_grid(self, shape_out) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Create a batched target grid matching the number of source images
 
         """
         B = len(self.batch_source_images)
-        H, W = self.target_image.shape
+        H, W = shape_out
 
         # Create meshgrid and repeat for batch
         y_grid = torch.arange(H, dtype=torch.float64, device=self.device).view(1, -1, 1).repeat(B, 1, W)
@@ -469,7 +464,8 @@ class Reproject:
 
 def calculate_reprojection(
     source_hdus: Union[PrimaryHDU, List[PrimaryHDU]],
-    target_hdu: PrimaryHDU,
+    target_wcs: WCS,
+    shape_out: Tuple[int, int],
     interpolation_mode="nearest",
 ):
     """
@@ -486,9 +482,8 @@ def calculate_reprojection(
         The source image HDU list containing the image data to be reprojected and
         its associated WCS information in the header.
 
-    target_hdu : fits.PrimaryHDU
-        The target image HDU providing the output grid and WCS information. The
-        shape of target_hdu.data defines the dimensions of the output image.
+    target_wcs : WCS
+        WCS information fopr the target.
 
     interpolation_mode : str, default 'nearest'
         The interpolation method to use when resampling the source image.
@@ -518,16 +513,18 @@ def calculate_reprojection(
     Examples
     --------
     >>> from astropy.io import fits
+    >>> from astropy.wcs import WCS
     >>> import torch
     >>> from reprojection.reproject import calculate_reprojection
     >>>
     >>> # Open source and target images
     >>> source_hdu = fits.open('source_image.fits')[0]
     >>> target_hdu = fits.open('target_grid.fits')[0]
+    >>> target_wcs = WCS(target_hdu.header)
     >>>
     >>> # Perform reprojection with bilinear interpolation
     >>> reprojected = calculate_reprojection(
-    ...     target_hdu=target_hdu,
+    ...     target_hdu=target_wcs,
     ...     source_hdu=source_hdu,
     ...     interpolation_mode='bilinear'
     ... )
@@ -540,5 +537,5 @@ def calculate_reprojection(
     # Convert single HDU to list if not already a list
     if not isinstance(source_hdus, list):
         source_hdus = [source_hdus]
-    reprojection = Reproject(source_hdus=source_hdus, target_hdu=target_hdu)
+    reprojection = Reproject(source_hdus=source_hdus, target_wcs=target_wcs, shape_out=shape_out)
     return reprojection.interpolate_source_image(interpolation_mode=interpolation_mode)

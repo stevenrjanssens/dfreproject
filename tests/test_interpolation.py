@@ -28,7 +28,7 @@ class TestInterpolationIntegration:
         from reprojection.reproject import Reproject
 
         # Create actual instance
-        reproject = Reproject([source_hdu], target_hdu)
+        reproject = Reproject([source_hdu], WCS(target_hdu.header), shape_out=target_hdu.data.shape)
 
         # Set device if needed
         if hasattr(reproject, 'set_device'):
@@ -109,7 +109,7 @@ class TestInterpolationIntegration:
         from reprojection.reproject import Reproject
 
         # Create reproject instance
-        reproject = Reproject([source_hdu], target_hdu)
+        reproject = Reproject([source_hdu], target_wcs, shape_out=target_data.shape)
 
         # Set device if needed
         if hasattr(reproject, 'set_device'):
