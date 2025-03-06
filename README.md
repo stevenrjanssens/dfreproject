@@ -48,16 +48,18 @@ pip install -e ".[docs]"
 
 ```python
 from astropy.io import fits
+from astropy.wcs import WCS
 from reprojection.reproject import calculate_reprojection
 
 # Load source and target images
 source_hdu = fits.open('source_image.fits')[0]
 target_hdu = fits.open('target_grid.fits')[0]
-
+target_wcs = WCS(target_hdu.header)
 # Perform reprojection with bilinear interpolation
 reprojected = calculate_reprojection(
-    source_hdu=source_hdu, 
-    target_hdu=target_hdu,
+    source_hdus=source_hdu, 
+    target_wcs=target_wcs,
+    shape_out=target_hdu.data.shape,
     interpolation_mode='bilinear'
 )
 
