@@ -23,7 +23,7 @@ def get_sip_coeffs(
     sip_coeffs = {}
 
     # Check if SIP distortion is present
-    sip = getattr(wcs.wcs, "sip", None)
+    sip = getattr(wcs, "sip", None)
     if sip is None:
         return None
 
