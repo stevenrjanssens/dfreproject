@@ -540,10 +540,9 @@ def calculate_reprojection(
 
     Returns
     -------
-    torch.Tensor
-        The reprojected image as a PyTorch tensor with the same shape as
-        target_hdu.data. The tensor is on the same device as the computation
-        (GPU if available, otherwise CPU).
+    numpy.ndarray
+        The reprojected image as a numpy ndarray with the same shape as
+        target_hdu.data.
 
     Notes
     -----
@@ -587,4 +586,6 @@ def calculate_reprojection(
     reprojection = Reproject(
         source_hdus=source_hdus, target_wcs=target_wcs, shape_out=shape_out
     )
-    return reprojection.interpolate_source_image(interpolation_mode=interpolation_mode)
+    result = reprojection.interpolate_source_image(interpolation_mode=interpolation_mode).cpu().numpy()
+    torch.cuda.empty_cache()
+    return result
