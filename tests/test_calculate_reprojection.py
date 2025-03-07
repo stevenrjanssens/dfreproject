@@ -92,7 +92,7 @@ class TestCalculateReprojection:
 
 
         # The result should have a gaussian peak somewhere
-        assert not torch.isnan(result).all()
+        assert not np.isnan(result).all()
 
 
     def test_all_interpolation_modes(self, simple_source_target_pair):
@@ -113,7 +113,7 @@ class TestCalculateReprojection:
             # Check basic properties
 
             assert result.shape == target_hdu.data.shape
-            assert not torch.isnan(result).all()
+            assert not np.isnan(result).all()
 
 
     def test_with_real_fits_files(self, source_fits_file, target_fits_file):
@@ -139,7 +139,7 @@ class TestCalculateReprojection:
 
         # Check result
         assert result.shape == target_hdu.data.shape
-        assert not torch.isnan(result).all()
+        assert not np.isnan(result).all()
 
     def test_end_to_end_workflow(self, simple_source_target_pair, test_data_dir):
         """Test a complete workflow including saving results to a new FITS file."""
@@ -165,7 +165,7 @@ class TestCalculateReprojection:
         )
 
         # Convert to numpy and save as FITS
-        reprojected_np = reprojected.cpu().numpy()
+        reprojected_np = reprojected
         output_hdu = fits.PrimaryHDU(data=reprojected_np, header=target_hdu.header)
         output_file = os.path.join(test_data_dir, "reprojected_output.fits")
         output_hdu.writeto(output_file, overwrite=True)
