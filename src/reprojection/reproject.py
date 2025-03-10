@@ -487,7 +487,7 @@ class Reproject:
         resampled_image = combined_result[:, 0].squeeze()
         resampled_footprint = combined_result[:, 1].squeeze()
         # Create output array initialized with zeros
-        result = torch.full_like(resampled_image, 0)
+        result = torch.full_like(resampled_image, torch.nan)
         # Apply footprint correction only where footprint is significant
         valid_pixels = resampled_footprint > EPSILON
         # Apply footprint correction only where footprint is significant

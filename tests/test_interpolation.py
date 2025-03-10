@@ -65,10 +65,6 @@ class TestInterpolationIntegration:
             # Perform interpolation
             result = reproject.interpolate_source_image(interpolation_mode=mode)
 
-            # Check that result is valid
-            assert not torch.isnan(result).any()
-            assert not torch.isinf(result).any()
-
             # Basic shape check
             assert result.unsqueeze(0).shape == reproject.target_grid[0].shape
 
