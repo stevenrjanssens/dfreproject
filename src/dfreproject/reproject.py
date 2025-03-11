@@ -5,8 +5,13 @@ import torch
 from astropy.io.fits import PrimaryHDU
 from astropy.wcs import WCS
 
-from .sip import (apply_inverse_sip_distortion,
-                             apply_sip_distortion, get_sip_coeffs)
+
+from .sip import (
+    apply_inverse_sip_distortion,
+    apply_sip_distortion,
+    get_sip_coeffs
+)
+
 from .utils import get_device
 
 EPSILON = 1e-10

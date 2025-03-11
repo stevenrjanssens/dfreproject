@@ -6,8 +6,8 @@ A high-performance Python package for reprojecting astronomical images between d
 [![Tests](https://github.com/DragonflyTelescope/dfreproject/actions/workflows/tests.yml/badge.svg)](https://github.com/DragonflyTelescope/dfreproject/actions/workflows/tests.yml)
 [![codecov](https://codecov.io/gh/DragonflyTelescope/dfreproject/branch/main/graph/badge.svg)](https://codecov.io/gh/DragonflyTelescope/dfreproject)
 
-The idea behind this package was to make a stripped down version of the `reproject` package by astropy in order to reduce computational time. 
-We achieve approximately 40X faster computations with this package. Take a look at the demos for an example. 
+The idea behind this package was to make a stripped down version of the `reproject` package by astropy in order to reduce computational time.
+We achieve approximately 40X faster computations with this package. Take a look at the demos for an example.
 
 ## Features
 
@@ -55,7 +55,11 @@ pip install -e ".[docs]"
 ```python
 from astropy.io import fits
 from astropy.wcs import WCS
+<<<<<<< HEAD
 from dfreproject import calculate_reprojection
+=======
+from reprojection import calculate_reprojection
+>>>>>>> 01cdde5 (expose calculate_reprojection method)
 
 # Load source and target images
 source_hdu = fits.open('source_image.fits')[0]
