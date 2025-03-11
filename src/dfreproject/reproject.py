@@ -5,9 +5,9 @@ import torch
 from astropy.io.fits import PrimaryHDU
 from astropy.wcs import WCS
 
-from reprojection.sip import (apply_inverse_sip_distortion,
-                              apply_sip_distortion, get_sip_coeffs)
-from reprojection.utils import get_device
+from dfreproject.sip import (apply_inverse_sip_distortion,
+                             apply_sip_distortion, get_sip_coeffs)
+from dfreproject.utils import get_device
 
 EPSILON = 1e-10
 
@@ -42,12 +42,12 @@ class Reproject:
         self, source_hdus: List[PrimaryHDU], target_wcs: WCS, shape_out: Tuple[int, int]
     ):
         """
-        Initialize a reprojection operation between source and target image frames.
+        Initialize a dfreproject operation between source and target image frames.
 
         This constructor sets up the necessary components for reprojecting an astronomical
         image from one World Coordinate System (WCS) to another. It stores the source
         and target WCS information, images, and creates a coordinate grid for the target
-        image that will be used in the reprojection process.
+        image that will be used in the dfreproject process.
 
         Parameters
         ----------
@@ -64,14 +64,14 @@ class Reproject:
         -----
         This constructor creates a coordinate grid spanning the entire target image,
         which will be used for the pixel-to-world and world-to-pixel transformations
-        during reprojection. The grid is created with 'ij' indexing, where the first
+        during dfreproject. The grid is created with 'ij' indexing, where the first
         dimension corresponds to y (rows) and the second to x (columns).
 
         The coordinate grid is stored as a tuple of tensors (batch, y_grid, x_grid), where
         each element has the same shape as the target image.
         Examples
         --------
-        >>> # Initialize the reprojection object
+        >>> # Initialize the dfreproject object
         >>> reproject = Reproject(source_hdus, target_wcs)
 
         """
@@ -426,7 +426,7 @@ class Reproject:
         """
         Interpolate the source image at the calculated source coordinates with flux conservation.
 
-        This method performs the actual pixel resampling needed for reprojection
+        This method performs the actual pixel resampling needed for dfreproject
         while preserving the total flux (photometric accuracy). It implements a
         footprint-based approach similar to that used in reproject_interp from the
         Astropy package.
@@ -514,9 +514,9 @@ def calculate_reprojection(
     """
     Reproject an astronomical image from a source WCS to a target WCS.
 
-    This high-level function provides a convenient interface for image reprojection,
+    This high-level function provides a convenient interface for image dfreproject,
     handling all the necessary steps: WCS extraction, tensor creation, and interpolation.
-    It converts FITS HDU objects to the internal representation, performs the reprojection,
+    It converts FITS HDU objects to the internal representation, performs the dfreproject,
     and returns the resulting image as a PyTorch tensor.
 
     Parameters
@@ -560,14 +560,14 @@ def calculate_reprojection(
     >>> from astropy.io import fits
     >>> from astropy.wcs import WCS
     >>> import torch
-    >>> from reprojection.reproject import calculate_reprojection
+    >>> from dfreproject.reproject import calculate_reprojection
     >>>
     >>> # Open source and target images
     >>> source_hdu = fits.open('source_image.fits')[0]
     >>> target_hdu = fits.open('target_grid.fits')[0]
     >>> target_wcs = WCS(target_hdu.header)
     >>>
-    >>> # Perform reprojection with bilinear interpolation
+    >>> # Perform dfreproject with bilinear interpolation
     >>> reprojected = calculate_reprojection(
     ...     source_hdus=source_hdu,
     ...     target_wcs=target_wcs,

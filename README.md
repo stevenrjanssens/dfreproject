@@ -1,4 +1,4 @@
-# Astronomical Image Reprojection
+# dfreproject
 
 A high-performance Python package for reprojecting astronomical images between different coordinate systems with support for SIP distortion correction.
 
@@ -25,7 +25,7 @@ We achieve approximately 40X faster computations with this package. Take a look 
 - NumPy
 - Astropy
 - PyTorch
-- Matplotlib (for visualization)
+- Matplotlib
 - cmcrameri
 
 ### Installing from Source
@@ -33,8 +33,8 @@ We achieve approximately 40X faster computations with this package. Take a look 
 For the latest development version, install directly from the GitHub repository:
 
 ```bash
-git clone https://github.com/dragonfly/reprojection.git
-cd reprojection
+git clone https://github.com/dragonfly/dfreproject.git
+cd dfreproject
 pip install -e .
 ```
 
@@ -49,15 +49,15 @@ pip install -e ".[docs]"
 ```python
 from astropy.io import fits
 from astropy.wcs import WCS
-from reprojection.reproject import calculate_reprojection
+from dfreproject.reproject import calculate_reprojection
 
 # Load source and target images
 source_hdu = fits.open('source_image.fits')[0]
 target_hdu = fits.open('target_grid.fits')[0]
 target_wcs = WCS(target_hdu.header)
-# Perform reprojection with bilinear interpolation
+# Perform dfreproject with bilinear interpolation
 reprojected = calculate_reprojection(
-    source_hdus=source_hdu, 
+    source_hdus=source_hdu,
     target_wcs=target_wcs,
     shape_out=target_hdu.data.shape,
     interpolation_mode='bilinear'
@@ -86,7 +86,7 @@ jupyter notebook
 
 ## Documentation
 
-Comprehensive documentation is available at [https://reprojection.readthedocs.io/](https://reprojection.readthedocs.io/)
+Comprehensive documentation is available at [https://dfreproject.readthedocs.io/](https://reprojection.readthedocs.io/)
 
 The documentation includes:
 - API reference
@@ -111,7 +111,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Citation
 
 If you use this package in your research, please cite:
-
+TBD
 
 
 ## Acknowledgments
