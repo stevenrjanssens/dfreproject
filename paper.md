@@ -1,5 +1,5 @@
 ---
-title: 'dfreprojecct: A Python package for astronomical reprojection'
+title: 'dfreproject: A Python package for astronomical reprojection'
 tags:
   - Python
   - astronomy
@@ -13,6 +13,10 @@ authors:
     equal-contrib: false # (This is how you can denote equal contributions between multiple authors)
     affiliation: 1
   - name: Steven Janssens
+    affiliation: 1
+  - name: Imad Pasha
+    affiliation: 1
+  - name: Roberto Abraham
     affiliation: 1
 
 affiliations:
@@ -38,15 +42,15 @@ This module follows the FITS and SIP formats layed out in the following papers: 
 
 # Statement of need
 
-`dfreproject` is a Python package developed using `PyTorch` (`@paszke_pytorch_2019`) as the computational backbone for astronomical image reprojection.
-This package was developed out of a need for a fast reprojection code that did not rely on pre-existing WCS calculations (such as those found in `astropy` or `WCSLIB`; [`@astropy_collaboration_astropy_2013; @astropy_collaboration_astropy_2018; @astropy_collaboration_astropy_2022`]).
+`dfreproject` is a Python package developed using `PyTorch` ([@paszke_pytorch_2019]) as the computational backbone for astronomical image reprojection.
+This package was developed out of a need for a fast reprojection code that did not rely on pre-existing WCS calculations (such as those found in `astropy` or `WCSLIB`; [@astropy_collaboration_astropy_2013; @astropy_collaboration_astropy_2018; @astropy_collaboration_astropy_2022]).
 We do however use `astropy.wcs` to read the header information from the input fits files. 
 
 Although several packages already exist for calculating and applying the reprojection of a source image onto a target plane such as 
-`reproject` (`@robitaille_reproject_2020`) or `astroalign` (`@beroiz_astroalign_2020`). 
+`reproject` ([@robitaille_reproject_2020]) or `astroalign` ([@beroiz_astroalign_2020]). 
 While these packages excel at easy-to-use, general-purpose astronomical image reprojection, they function solely on CPUs and therefore can serve as a computational bottleneck in data reduction pipelines.
 It was with this in mind that we developed `dfreproject`. By leveraging `PyTorch` for vectorization and parallelization via the GPU,
-we are able to achieve a considerable speedup (up to 25X) over standard methods.
+we are able to achieve a considerable speedup (up to nearly 40X) over standard methods.
 
 
 
@@ -71,7 +75,7 @@ In the final interpolation step we include local flux conservation by simulateno
 The final reprojected frame is normalized by this footprint.
 
 ## Coordinate Transformation
-In this section we describe the coordinate transformation using the Gnomonic projection.
+In this section we describe the coordinate transformation using the Gnomonic projection. Please note that we include an additional shift of 1 pixel to handle the fact that python is 0-based.
 We will be using the following definintions for values: 
 
 $x,y$ - pixel values
@@ -177,6 +181,6 @@ In figure \autoref{fig:cpu-comparison}, we display the same results except we us
 Although the speedup on the CPU is not as impressive as on the GPU, it is still considerable.
 # Acknowledgements
 
-We use the cmcrameri scientific color maps in our demos (`@crameri_scientific_2023`).
+We use the cmcrameri scientific color maps in our demos ([@crameri_scientific_2023]).
 
 # References
