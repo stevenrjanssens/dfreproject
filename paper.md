@@ -172,14 +172,17 @@ Figure \autoref{fig:gpu-comparison} shows the results of this benchmarking when 
 As evidenced by this figure, `dfreproject` has a significant speed advantage over `reproject` for larger images regardless of the type of interpolation scheme. 
 The speedup is most pronounced in the case of where SIP distortions are included.
 
-In figure \autoref{fig:cpu-comparison}, we display the same results except we used a CPU 
+In figure \autoref{fig:cpu-comparison}, we display the same results except we used a CPU (Intel® Core™ i9-14900HX).
 
 
 ![\label{fig:cpu-comparison}](demo/benchmarking/sip_comparison_line_cpu.png)
 
 
 Although the speedup on the CPU is not as impressive as on the GPU, it is still considerable.
+
+
 # Acknowledgements
+We would like to acknowledge the Dragonfly FRO. We would like to give a particularly warm thank you to Lisa Sloan for her project management skills.
 
 We use the cmcrameri scientific color maps in our demos [@crameri_scientific_2023].
 
