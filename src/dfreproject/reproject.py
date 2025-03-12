@@ -39,7 +39,7 @@ def interpolate_image(
 
 class Reproject:
     def __init__(
-        self, source_hdus: List[PrimaryHDU], target_wcs: WCS, shape_out: Tuple[int, int]
+        self, source_hdus: List[PrimaryHDU], target_wcs: WCS, shape_out: Tuple[int, int], device=None
     ):
         """
         Initialize a dfreproject operation between source and target image frames.
@@ -60,6 +60,9 @@ class Reproject:
         shape_out: Tuple[int, int]
             Shape of the output image
 
+        device: str
+            Device to use for computations. Defaults to GPU if available otherwise uses CPU
+
         Notes
         -----
         This constructor creates a coordinate grid spanning the entire target image,
@@ -76,8 +79,10 @@ class Reproject:
 
         """
         # Set device
-        self.device = get_device()
-
+        if device is None:
+            self.device = get_device()
+        else:
+            self.device = torch.device(device)
         self.batch_source_images = self._prepare_source_images(source_hdus)
         # Initialize the WCS objects
         self.batch_source_wcs_params = self._prepare_batch_wcs_params(source_hdus)
@@ -510,6 +515,7 @@ def calculate_reprojection(
     target_wcs: WCS,
     shape_out: Tuple[int, int],
     interpolation_mode="nearest",
+    device=None
 ):
     """
     Reproject an astronomical image from a source WCS to a target WCS.
@@ -537,6 +543,9 @@ def calculate_reprojection(
         - 'nearest' : Nearest neighbor interpolation (fastest, default)
         - 'bilinear' : Bilinear interpolation (good balance of speed/quality)
         - 'bicubic' : Bicubic interpolation (highest quality, slowest)
+
+    device: str
+            Device to use for computations. Defaults to GPU if available otherwise uses CPU
 
     Returns
     -------
@@ -584,7 +593,7 @@ def calculate_reprojection(
     if not isinstance(source_hdus, list):
         source_hdus = [source_hdus]
     reprojection = Reproject(
-        source_hdus=source_hdus, target_wcs=target_wcs, shape_out=shape_out
+        source_hdus=source_hdus, target_wcs=target_wcs, shape_out=shape_out, device=device
     )
     result = reprojection.interpolate_source_image(interpolation_mode=interpolation_mode).cpu().numpy()
     torch.cuda.empty_cache()
