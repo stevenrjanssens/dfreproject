@@ -2,9 +2,9 @@
 
 A high-performance Python package for reprojecting astronomical images between different coordinate systems with support for SIP distortion correction.
 
-[![Documentation Status](https://readthedocs.org/projects/reprojection/badge/?version=latest)](https://reprojection.readthedocs.io/en/latest/?badge=latest)
-[![Tests](https://github.com/DragonflyTelescope/reprojection/actions/workflows/tests.yml/badge.svg)](https://github.com/DragonflyTelescope/reprojection/actions/workflows/tests.yml)
-[![codecov](https://codecov.io/gh/DragonflyTelescope/reprojection/branch/main/graph/badge.svg)](https://codecov.io/gh/DragonflyTelescope/reprojection)
+[![Documentation Status](https://readthedocs.org/projects/dfreproject/badge/?version=latest)](https://dfreproject.readthedocs.io/en/latest/?badge=latest)
+[![Tests](https://github.com/DragonflyTelescope/dfreproject/actions/workflows/tests.yml/badge.svg)](https://github.com/DragonflyTelescope/dfreproject/actions/workflows/tests.yml)
+[![codecov](https://codecov.io/gh/DragonflyTelescope/dfreproject/branch/main/graph/badge.svg)](https://codecov.io/gh/DragonflyTelescope/dfreproject)
 
 The idea behind this package was to make a stripped down version of the `reproject` package by astropy in order to reduce computational time. 
 We achieve approximately 40X faster computations with this package. Take a look at the demos for an example. 
@@ -33,7 +33,7 @@ We achieve approximately 40X faster computations with this package. Take a look 
 For the latest development version, install directly from the GitHub repository:
 
 ```bash
-git clone https://github.com/dragonfly/dfreproject.git
+git clone https://github.com/DragonflyTelescope/dfreproject.git
 cd dfreproject
 pip install -e .
 ```
@@ -49,7 +49,7 @@ pip install -e ".[docs]"
 ```python
 from astropy.io import fits
 from astropy.wcs import WCS
-from dfreproject.reproject import calculate_reprojection
+from dfreproject import calculate_reprojection
 
 # Load source and target images
 source_hdu = fits.open('source_image.fits')[0]
