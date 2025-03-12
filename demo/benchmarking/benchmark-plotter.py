@@ -187,7 +187,8 @@ def plot_sip_comparison(df, output_file_prefix='sip_comparison'):
     
     # 3. Line plot with SIP as groups
     plt.figure(figsize=(14, 10))
-    
+
+    interp_line_styles = ['-', '--', '-.']
     # Create a grouped line plot for each SIP + interpolation combination
     for sip in df['SIP'].unique():
         sip_data = df[df['SIP'] == sip]
@@ -211,13 +212,18 @@ def plot_sip_comparison(df, output_file_prefix='sip_comparison'):
             plt.plot(filter_data['Image Size'], filter_data['Speedup'], 
                     marker='o', linewidth=2, 
                     label=f"{interp} ({sip})",
-                    color=cmc.managua(color_idx))
-    
+                    color=cmc.managua(color_idx),)
+                     # linestyle=interp_line_styles[interp_idx])
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    # plt.ylim(3, 50)
+    # plt.yscale('log')
+    # plt.xscale('log')
     plt.axhline(y=1, color='r', linestyle='--', alpha=0.5)
-    plt.xlabel('Image Size')
-    plt.ylabel('Speedup Factor (reproject/dfreproject)')
-    plt.title('Speedup Factor by Image Size, Interpolation Method, and SIP Distortion')
-    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.xlabel('Image Size', fontdict={'fontsize': 20, 'fontweight': 'bold'})
+    plt.ylabel('Speedup Factor (dfreproject/reproject)' , fontdict={'fontsize': 20, 'fontweight': 'bold'})
+    plt.title('Speedup Factor by Image Size, Interpolation Method, and SIP Distortion', fontdict={'fontsize': 20, 'fontweight': 'bold'})
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=14)
     plt.grid(linestyle='--', alpha=0.7)
     plt.tight_layout()
     plt.savefig(f"{output_file_prefix}_line.png", dpi=300, bbox_inches='tight')
