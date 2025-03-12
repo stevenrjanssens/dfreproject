@@ -37,17 +37,17 @@ Traditionally, this is done by reprojecting each exposure onto a common target g
 In this package, we constructed functions that breakdown the coordinate transformations using Gnomonic projection to define 
 the pixel-by-pixel shift from the source plane to the target plane. Additionally, we provide the requisite tools for interpolating the source image onto the target plane.
 With a single function call, the user is able to calculate the complete reprojection of the source image onto the target plane.
-This module follows the FITS and SIP formats layed out in the following papers: `@greisen_representations_2002`, `@calabretta_representations_2002`, and `@shupe_sip_2005`.
+This module follows the FITS and SIP formats layed out in the following papers: [@greisen_representations_2002], [@calabretta_representations_2002], and [@shupe_sip_2005].
 
 
 # Statement of need
 
-`dfreproject` is a Python package developed using `PyTorch` ([@paszke_pytorch_2019]) as the computational backbone for astronomical image reprojection.
+`dfreproject` is a Python package developed using `PyTorch` [@paszke_pytorch_2019] as the computational backbone for astronomical image reprojection.
 This package was developed out of a need for a fast reprojection code that did not rely on pre-existing WCS calculations (such as those found in `astropy` or `WCSLIB`; [@astropy_collaboration_astropy_2013; @astropy_collaboration_astropy_2018; @astropy_collaboration_astropy_2022]).
 We do however use `astropy.wcs` to read the header information from the input fits files. 
 
 Although several packages already exist for calculating and applying the reprojection of a source image onto a target plane such as 
-`reproject` ([@robitaille_reproject_2020]) or `astroalign` ([@beroiz_astroalign_2020]). 
+`reproject` [@robitaille_reproject_2020] or `astroalign` [@beroiz_astroalign_2020]. 
 While these packages excel at easy-to-use, general-purpose astronomical image reprojection, they function solely on CPUs and therefore can serve as a computational bottleneck in data reduction pipelines.
 It was with this in mind that we developed `dfreproject`. By leveraging `PyTorch` for vectorization and parallelization via the GPU,
 we are able to achieve a considerable speedup (up to nearly 40X) over standard methods.
@@ -181,6 +181,6 @@ In figure \autoref{fig:cpu-comparison}, we display the same results except we us
 Although the speedup on the CPU is not as impressive as on the GPU, it is still considerable.
 # Acknowledgements
 
-We use the cmcrameri scientific color maps in our demos ([@crameri_scientific_2023]).
+We use the cmcrameri scientific color maps in our demos [@crameri_scientific_2023].
 
 # References
