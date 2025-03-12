@@ -18,7 +18,7 @@ authors:
 affiliations:
  - name: Dragonfly Focused Research Organization, 150 Washington Avenue, Santa Fe, 87501, NM, USA
    index: 1
- - name: Centre de recherche en astrophysique du Qu\'{e}bec (CRAQ)
+ - name: Centre de recherche en astrophysique du Québec (CRAQ)
    index: 2
 date: 01 April 2025
 bibliography: dfreproject.bib
@@ -151,6 +151,8 @@ $$y = v + (crpix_2 - 1)$$
 For this demonstration we created two small (50x50) fits files (see `demo/create_test_data::create_fits_file_tiny`) with a several pixel offset.
 In figure \autoref{fig:demo}, you can see the original image, the `dfreproject` solution, the `reproject` solution, and the relative error between the two.
 For both solutions, we use a nearest-neighbor interpolation scheme.
+
+
 ![\label{fig:demo}](demo/comparison.png)
 
 
@@ -159,14 +161,19 @@ In order to compare the execution times, we created a benchmarking script (that 
 We benchmark the three interpolation schemes with and without SIP distortion for images sized 256x256, 512x512, 1024x1024, and 4000x600.
 Figure \autoref{fig:gpu-comparison} shows the results of this benchmarking when `dfreproject` is run using a GPU (NVIDIA GeForce RTX 4060).
 
+
 ![\label{fig:gpu-comparison}](demo/benchmarking/sip_comparison_line_gpu.png)
+
 
 As evidenced by this figure, `dfreproject` has a significant speed advantage over `reproject` for larger images regardless of the type of interpolation scheme. 
 The speedup is most pronounced in the case of where SIP distortions are included.
 
 In figure \autoref{fig:cpu-comparison}, we display the same results except we used a CPU 
 
+
 ![\label{fig:cpu-comparison}](demo/benchmarking/sip_comparison_line_cpu.png)
+
+
 Although the speedup on the CPU is not as impressive as on the GPU, it is still considerable.
 # Acknowledgements
 
