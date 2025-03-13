@@ -65,11 +65,14 @@ we are able to achieve a considerable speedup (up to nearly 40X) over standard m
 # Methods
 In order to reproject an image onto a new coordinate plane, we must perform three intermediate calculations. 
 To do this, we use the target and source WCS. 
+
 Before defining the steps, there are a few terms to define:
+
 - SIP: Standard Imaging Polynomial. This convention allows us to represent non-linear geometric distortions as a simple polynomial.
 The order and coefficients of this polynomial is stored in the header. The SIP is broken down into four individual polynomials, SIP\_A, SIP\_B, SIP\_INV\_A, and SIP\_INV\_B where
 SIP\_A defines the polynomial applied to the x-coordinates, SIP\_B defines the polynomial applied to the y-coordinates, and SIP\_INV\_A and SIP\_INV\_B define the inverse operations.
 For an in-depth discussion on SIP, please see @shupe_sip_2005.
+
 - CD Matrix: Coordinate Description Matrix. This is  a 2X2 matrix that encodes the rotation, skew, and scaling of the image. 
 The values are conveniently stored in the header. The CD matrix may also be constructed from the PC, Projection Coordinate, matrix multiplied by the CDELT values.
 
