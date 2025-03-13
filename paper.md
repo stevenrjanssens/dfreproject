@@ -4,6 +4,8 @@ tags:
   - Python
   - astronomy
   - reprojection
+  - PyTorch
+  - Dragonfly Telescopic Array
 authors:
   - name: Carter Lee Rhea
     orcid: 0000-0003-2001-1076
@@ -39,7 +41,7 @@ Traditionally, this is done by reprojecting each exposure onto a common target g
 In this package, we constructed functions that breakdown the coordinate transformations using Gnomonic projection to define 
 the pixel-by-pixel shift from the source plane to the target plane. Additionally, we provide the requisite tools for interpolating the source image onto the target plane.
 With a single function call, the user is able to calculate the complete reprojection of the source image onto the target plane.
-This module follows the FITS and SIP formats layed out in the following papers: [@greisen_representations_2002], [@calabretta_representations_2002], and [@shupe_sip_2005].
+This module follows the FITS and SIP formats layed out in the following papers: @greisen_representations_2002, @calabretta_representations_2002, and @shupe_sip_2005.
 We report a speedup of up to 40X when run on a GPU and 15X when run on a CPU compared to common alternatives.
 
 # Statement of need
@@ -179,7 +181,7 @@ $$x = u + (\mathrm{crpix}_1 - 1)$$
 $$y = v + (\mathrm{crpix}_2 - 1)$$
 
 ## Demo
-For this demonstration we created two small (50x50) FITS files (see `demo/create_test_data::create_fits_file_tiny.py`) with a several pixel offset.
+For this demonstration we created two small (50x50) FITS files with a several pixel offset.
 In \autoref{fig:demo} from left to right, we show the original image, the `dfreproject` solution, the `reproject` solution, and the relative error between the two.
 For both solutions, we use a nearest-neighbor interpolation scheme.
 
@@ -208,6 +210,7 @@ In \autoref{fig:cpu-comparison}, we display the same results except we used a CP
 
 Although the speedup on the CPU is not as impressive as on the GPU, it is still considerable.
 
+All code can be found in the `demo` directory.
 
 # Acknowledgements
 We would like to acknowledge the Dragonfly FRO. We would like to give a particularly warm thank you to Lisa Sloan for her project management skills.
