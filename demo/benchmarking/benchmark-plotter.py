@@ -176,7 +176,7 @@ def plot_sip_comparison(df, output_file_prefix='sip_comparison'):
     plt.figure(figsize=(12, 8))
     # Convert the colormap to a list of colors for the number of SIP categories
     n_colors = len(df['SIP'].unique())
-    colors = [cmc.managua(i / (n_colors - 1) if n_colors > 1 else 0.5) for i in range(n_colors)]
+    colors = [cmc.batlow(i / (n_colors - 1) if n_colors > 1 else 0.5) for i in range(n_colors)]
     sns.boxplot(x='Interpolation', y='Speedup', hue='SIP', data=df, palette=colors)
     plt.axhline(y=1, color='r', linestyle='--', alpha=0.5)
     plt.title('Distribution of Speedup by Interpolation Method and SIP')
@@ -188,7 +188,7 @@ def plot_sip_comparison(df, output_file_prefix='sip_comparison'):
     # 3. Line plot with SIP as groups
     plt.figure(figsize=(14, 10))
 
-    interp_line_styles = ['-', '--', '-.']
+    interp_line_styles = ['-', '--']
     # Create a grouped line plot for each SIP + interpolation combination
     for sip in df['SIP'].unique():
         sip_data = df[df['SIP'] == sip]
@@ -212,8 +212,8 @@ def plot_sip_comparison(df, output_file_prefix='sip_comparison'):
             plt.plot(filter_data['Image Size'], filter_data['Speedup'], 
                     marker='o', linewidth=2, 
                     label=f"{interp} ({sip})",
-                    color=cmc.managua(color_idx),)
-                     # linestyle=interp_line_styles[interp_idx])
+                    color=cmc.berlin(color_idx),
+                     linestyle=interp_line_styles[sip_idx])
     plt.xticks(fontsize=14)
     plt.yticks(fontsize=14)
     # plt.ylim(3, 50)
