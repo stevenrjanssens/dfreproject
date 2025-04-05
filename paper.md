@@ -5,7 +5,7 @@ tags:
   - astronomy
   - reprojection
   - PyTorch
-  - Dragonfly Telescopic Array
+  - Dragonfly Telephoto Array
 authors:
   - name: Carter Lee Rhea
     orcid: 0000-0003-2001-1076
@@ -13,20 +13,34 @@ authors:
     affiliation: "1, 2" # (Multiple affiliations must be quoted)
   - name: Pieter Van Dokkum
     equal-contrib: false # (This is how you can denote equal contributions between multiple authors)
-    affiliation: 1
+    affiliation: "1, 3"
   - name: Steven R. Janssens
     orcid: 0000-0003-0327-3322
     affiliation: 1
   - name: Imad Pasha
     affiliation: 1
   - name: Roberto Abraham
+    affiliation: "1, 4, 5"
+  - name: William Bowman
     affiliation: 1
-
+  - name: Deborah Lokhorst
+    affiliation: "1, 6"
+  - name: Seery Chen
+    affiliation: "1, 4, 5"
+    
 affiliations:
  - name: Dragonfly Focused Research Organization, 150 Washington Avenue, Santa Fe, 87501, NM, USA
    index: 1
  - name: Centre de recherche en astrophysique du Québec (CRAQ)
    index: 2
+ - name: Astronomy Department, Yale University, 219 Prospect St, New Haven, CT 06511, USA
+   index: 3
+ - name: David A. Dunlap Department of Astronomy \& Astrophysics, University of Toronto, 50 St. George Street, Toronto, ON M5S3H4, Canada
+   index: 4
+ - name: Dunlap Institute for Astronomy \& Astrophysics, University of Toronto, 50 St. George Street, Toronto, ON M5S3H4, Canada
+   index: 5
+ - name: NRC Herzberg Astronomy & Astrophysics Research Centre, 5071 West Saanich Road, Victoria, BC V9E 2E7, Canada
+   index: 6
 date: 01 April 2025
 bibliography: dfreproject.bib
 
@@ -60,6 +74,16 @@ Therefore, it is paramount to have a fast and accurate reprojection method.
 By leveraging `PyTorch` for vectorization and parallelization via the GPU,
 we are able to achieve a considerable speedup (up to nearly 40X) over standard methods.
 
+`dfreproject` can be used as a direct replacment for `reproject.reproject_interp` by simply importing `dfreproject` instead of `reproject` such as:
+```python 
+from dfreproject import calculate_reprojection
+reprojected = calculate_reprojection(
+    source_hdus=source_hdu,
+    target_wcs=target_wcs,
+    shape_out=target_hdu.data.shape,
+    order='bilinear'
+)
+```
 
 
 
@@ -144,8 +168,8 @@ v
 $$
 $$r = \sqrt{u'^2 + v'^2}$$
 $$r_0 = \frac{180}{\pi}$$
-$$\phi = atan^2(-u', v')$$
-$$\theta = atan^2(r_0, r) $$
+$$\phi = \mathrm{atan}^2(-u', v')$$
+$$\theta = \mathrm{atan}^2(r_0, r) $$
 $$\mathrm{dec} = \sin^{-1}\Big( \sin(\theta)\sin(dec_0) + \cos(\theta)\cos(dec_0)\cos(\phi) \Big) $$
 $$\mathrm{ra} = \mathrm{ra}_0 + \mathrm{atan}^2\Big( -\cos(\theta)\sin(\phi), \sin(\theta)\cos(dec_0)-\cos(\theta)\sin(dec_0)\cos(\phi) \Big) $$
 

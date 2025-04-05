@@ -45,145 +45,16 @@ def create_summary_tables(df):
         })
         print(tabulate(sip_summary, headers='keys', tablefmt='grid', floatfmt='.4f'))
 
-def plot_execution_times(df, output_file='execution_times.png'):
-    """Plot execution times for both packages."""
-    plt.figure(figsize=(12, 8))
-    
-    # Create a categorical x-axis combining size and interpolation
-    if 'Size_Interp' not in df.columns:
-        df['Size_Interp'] = df['Image Size'] + '\n' + df['Interpolation']
-    
-    # Sort by Image Size and Interpolation
-    df_sorted = df.sort_values(['Image Size', 'Interpolation'])
-    
-    # Create the bar chart
-    bar_positions = np.arange(len(df_sorted))
-    bar_width = 0.35
-    
-    # Use specific values from the colormap to get colors
-    reproject_color = cmc.hawaii_r(0.3)
-    dfreproject_color = cmc.hawaii_r(0.7)
-    
-    plt.bar(bar_positions - bar_width/2, df_sorted['Reproject Time (s)'], 
-            bar_width, label='reproject', color=reproject_color)
-    plt.bar(bar_positions + bar_width/2, df_sorted['DFReproject Time (s)'], 
-            bar_width, label='dfreproject', color=dfreproject_color)
-    
-    plt.xlabel('Image Size and Interpolation Method')
-    plt.ylabel('Execution Time (seconds)')
-    plt.title('Execution Time Comparison')
-    plt.xticks(bar_positions, df_sorted['Size_Interp'])
-    plt.legend()
-    plt.grid(axis='y', linestyle='--', alpha=0.7)
-    plt.tight_layout()
-    plt.savefig(output_file, dpi=300, bbox_inches='tight')
-    plt.close()
-    
-    print(f"Execution time plot saved to {output_file}")
 
-def plot_speedup_heatmap(df, output_file='speedup_heatmap.png'):
-    """Create a heatmap of speedup factors."""
-    plt.figure(figsize=(12, 8))
-    
-    # Reshape data for heatmap
-    heatmap_data = df.pivot_table(
-        index='Interpolation', 
-        columns='Image Size', 
-        values='Speedup'
-    )
-    
-    # Create the heatmap
-    # Convert the colormap to a string name if needed or use a compatible cmap
-    sns.heatmap(heatmap_data, annot=True, fmt='.2f', cmap='YlGnBu',
-                linewidths=.5, cbar_kws={'label': 'Speedup Factor'})
-    
-    plt.title('Speedup Factor (reproject/dfreproject)')
-    plt.tight_layout()
-    plt.savefig(output_file, dpi=300, bbox_inches='tight')
-    plt.close()
-    
-    print(f"Speedup heatmap saved to {output_file}")
 
-def plot_speedup_by_size(df, output_file='speedup_by_size.png'):
-    """Create a line plot showing speedup by image size."""
-    plt.figure(figsize=(14, 8))
-    
-    # Create a list of colors from the colormap
-    n_interp = len(df['Interpolation'].unique())
-    colors = [cmc.glasgow(i / (n_interp - 1) if n_interp > 1 else 0.5) for i in range(n_interp)]
-    
-    # Create a grouped line plot
-    for i, interp in enumerate(df['Interpolation'].unique()):
-        interp_data = df[df['Interpolation'] == interp]
-        
-        # Convert image size to numeric for proper scaling
-        interp_data['Size_Numeric'] = interp_data['Image Size'].apply(
-            lambda x: int(x.split('x')[0]) * int(x.split('x')[1])
-        )
-        
-        # Sort by numeric size
-        interp_data = interp_data.sort_values('Size_Numeric')
-        
-        # Use a color from the pre-generated list
-        plt.plot(interp_data['Image Size'], interp_data['Speedup'], 
-                marker='o', linewidth=2, label=interp, 
-                color=colors[i])
-    
-    plt.axhline(y=1, color='r', linestyle='--', alpha=0.5)
-    plt.xlabel('Image Size')
-    plt.ylabel('Speedup Factor (reproject/dfreproject)')
-    plt.title('Speedup Factor by Image Size and Interpolation Method')
-    plt.legend()
-    plt.grid(linestyle='--', alpha=0.7)
-    plt.tight_layout()
-    plt.savefig(output_file, dpi=300, bbox_inches='tight')
-    plt.close()
-    
-    print(f"Speedup by size plot saved to {output_file}")
+
 
 def plot_sip_comparison(df, output_file_prefix='sip_comparison'):
     """Create visualizations comparing performance with and without SIP."""
     if 'SIP' not in df.columns:
         print("SIP column not found in data. Skipping SIP comparison plots.")
         return
-    
-    # 1. Side-by-side heatmaps for with/without SIP
-    plt.figure(figsize=(16, 7))
-    fig, axes = plt.subplots(1, 2, figsize=(16, 7))
-    
-    for i, sip_value in enumerate(df['SIP'].unique()):
-        sip_data = df[df['SIP'] == sip_value]
-        
-        # Reshape data for heatmap
-        heatmap_data = sip_data.pivot_table(
-            index='Interpolation', 
-            columns='Image Size', 
-            values='Speedup'
-        )
-        
-        # Create the heatmap
-        sns.heatmap(heatmap_data, annot=True, fmt='.2f', cmap=cmc.lajolla,
-                    linewidths=.5, ax=axes[i],
-                    cbar_kws={'label': 'Speedup Factor'})
-        
-        axes[i].set_title(f'Speedup Factor {sip_value}')
-    
-    plt.tight_layout()
-    plt.savefig(f"{output_file_prefix}_heatmaps.png", dpi=300, bbox_inches='tight')
-    plt.close()
-    
-    # 2. Box plot of speedup by SIP and interpolation
-    plt.figure(figsize=(12, 8))
-    # Convert the colormap to a list of colors for the number of SIP categories
-    n_colors = len(df['SIP'].unique())
-    colors = [cmc.batlow(i / (n_colors - 1) if n_colors > 1 else 0.5) for i in range(n_colors)]
-    sns.boxplot(x='Interpolation', y='Speedup', hue='SIP', data=df, palette=colors)
-    plt.axhline(y=1, color='r', linestyle='--', alpha=0.5)
-    plt.title('Distribution of Speedup by Interpolation Method and SIP')
-    plt.grid(axis='y', linestyle='--', alpha=0.7)
-    plt.tight_layout()
-    plt.savefig(f"{output_file_prefix}_boxplot.png", dpi=300, bbox_inches='tight')
-    plt.close()
+
     
     # 3. Line plot with SIP as groups
     plt.figure(figsize=(14, 10))
@@ -214,7 +85,8 @@ def plot_sip_comparison(df, output_file_prefix='sip_comparison'):
                     label=f"{interp} ({sip})",
                     color=cmc.berlin(color_idx),
                      linestyle=interp_line_styles[sip_idx])
-    plt.xticks(fontsize=14)
+    desired_ticks = ['256x256', '512x512', '1024x1024', '2048x2048', '4000x6000']
+    plt.xticks(ticks=desired_ticks, labels=desired_ticks, fontsize=14)
     plt.yticks(fontsize=14)
     # plt.ylim(3, 50)
     # plt.yscale('log')
@@ -242,12 +114,7 @@ def main():
     
     # Create summary tables
     create_summary_tables(df)
-    
-    # Generate basic plots
-    plot_execution_times(df)
-    plot_speedup_heatmap(df)
-    plot_speedup_by_size(df)
-    
+
     # Generate SIP comparison plots if applicable
     plot_sip_comparison(df)
     

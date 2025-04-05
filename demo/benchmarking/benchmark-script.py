@@ -124,7 +124,7 @@ def benchmark_reproject(input_array, input_wcs, output_wcs, output_shape, order)
     return end_time - start_time
 
 
-def benchmark_dfreproject(input_array, input_wcs, output_wcs, output_shape, interp_mode):
+def benchmark_dfreproject(input_array, input_wcs, output_wcs, output_shape, interp_mode, device):
     """
     Benchmark the dfreproject package.
 
@@ -138,12 +138,12 @@ def benchmark_dfreproject(input_array, input_wcs, output_wcs, output_shape, inte
 
     start_time = time.time()
     output_array = dfreproject.calculate_reprojection(
-        hdu, output_wcs, shape_out=output_shape, interpolation_mode=interp_mode, device='cpu')
+        hdu, output_wcs, shape_out=output_shape, order=interp_mode, device=device)
     end_time = time.time()
     return end_time - start_time
 
 
-def run_benchmarks(image_sizes, interpolation_methods, num_trials=3):
+def run_benchmarks(image_sizes, interpolation_methods, num_trials=3, device='cpu'):
     """
     Run benchmarks for both packages on all image sizes and interpolation methods.
 
@@ -185,7 +185,7 @@ def run_benchmarks(image_sizes, interpolation_methods, num_trials=3):
                     reproject_times.append(reproject_time)
 
                     # Run dfreproject benchmark
-                    dfreproject_time = benchmark_dfreproject(input_array, input_wcs, output_wcs, output_shape, interp)
+                    dfreproject_time = benchmark_dfreproject(input_array, input_wcs, output_wcs, output_shape, interp, device)
                     dfreproject_times.append(dfreproject_time)
 
                 # Calculate average times
@@ -207,7 +207,7 @@ def run_benchmarks(image_sizes, interpolation_methods, num_trials=3):
     return results
 
 
-def display_results(results):
+def display_results(results, device):
     """Display benchmark results in tables and graphs."""
     # Create DataFrame
     df = pd.DataFrame(results)
@@ -217,7 +217,7 @@ def display_results(results):
     print(tabulate(df, headers='keys', tablefmt='grid', floatfmt='.4f'))
 
     # Save detailed results to CSV
-    df.to_csv('reproject_benchmark_detailed_results.csv', index=False)
+    df.to_csv(f'reproject_benchmark_detailed_results_{device}.csv', index=False)
 
     # Create summary table grouped by interpolation method
     print("\nSummary by Interpolation Method:")
@@ -243,12 +243,12 @@ def display_results(results):
     print(tabulate(sip_summary, headers='keys', tablefmt='grid', floatfmt='.4f'))
 
     # Create visualizations
-    create_visualizations(df)
+    create_visualizations(df, device)
 
     return df
 
 
-def create_visualizations(df):
+def create_visualizations(df, device):
     """Create various visualizations of the benchmark results."""
     # Set the style
     sns.set(style="whitegrid")
@@ -353,7 +353,7 @@ def create_visualizations(df):
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.grid(linestyle='--', alpha=0.7)
     plt.tight_layout()
-    plt.savefig('reproject_speedup_by_size_and_sip.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'reproject_speedup_by_size_and_sip_{device}.png', dpi=300, bbox_inches='tight')
 
     # 5. Box plot of speedup by SIP and interpolation
     plt.figure(figsize=(12, 8))
@@ -368,6 +368,7 @@ def create_visualizations(df):
 
 
 def main():
+    device = 'cuda'
     # Image sizes to benchmark
     image_sizes = [
         (256, 256),
@@ -375,6 +376,26 @@ def main():
         (1024, 1024),
         (4000, 6000)
     ]
+    # aspect_ratios = [1.0, 1.2, 1.5]
+    # num_sizes = 50
+    #
+    # must_have_sizes = [(256, 256), (512, 512), (1024, 1024), (2048, 2048), (4000, 6000)]
+    #
+    # # Generate widths and heights with varying aspect ratios
+    # widths = np.geomspace(256, 4000, num=num_sizes).astype(int)
+    # widths = np.unique(widths)
+    #
+    # # Build initial image sizes from aspect ratios
+    # image_sizes = []
+    # for i, w in enumerate(widths):
+    #     ar = aspect_ratios[i % len(aspect_ratios)]
+    #     h = int(w * ar)
+    #     image_sizes.append((w, h))
+    #
+    # # Combine and deduplicate with must-have sizes
+    # image_sizes.extend(must_have_sizes)
+    # image_sizes = list(set(image_sizes))  # remove duplicates
+    # image_sizes.sort()  # optional: sort for consistency
 
     # Interpolation methods to benchmark
     interpolation_methods = [
@@ -384,14 +405,14 @@ def main():
     ]
 
     # Number of trials for each configuration
-    num_trials = 3
+    num_trials = 2
 
     # Run benchmarks
     print("Starting benchmarks...")
-    results = run_benchmarks(image_sizes, interpolation_methods, num_trials)
+    results = run_benchmarks(image_sizes, interpolation_methods, num_trials, device)
 
     # Display results
-    display_results(results)
+    display_results(results, device)
 
     print("\nBenchmark complete. Results saved to CSV and PNG files.")
 

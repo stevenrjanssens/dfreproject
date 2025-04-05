@@ -86,7 +86,7 @@ class TestCalculateReprojection:
             source_hdus=source_hdu,
             target_wcs=target_wcs,
             shape_out=target_hdu.data.shape,
-            interpolation_mode="bilinear"
+            order="bilinear"
         )
 
 
@@ -107,7 +107,7 @@ class TestCalculateReprojection:
                 source_hdus=source_hdu,
                 target_wcs=target_wcs,
                 shape_out=target_hdu.data.shape,
-                interpolation_mode=mode
+                order=mode
             )
 
             # Check basic properties
@@ -134,7 +134,7 @@ class TestCalculateReprojection:
             source_hdus=source_hdu,
             target_wcs=WCS(target_hdu.header),
             shape_out=target_hdu.data.shape,
-            interpolation_mode="bilinear"
+            order="bilinear"
         )
 
         # Check result
@@ -161,7 +161,7 @@ class TestCalculateReprojection:
             source_hdus=source_hdu,
             target_wcs=WCS(target_hdu.header),
             shape_out=target_hdu.data.shape,
-            interpolation_mode="bilinear"
+            order="bilinear"
         )
 
         # Convert to numpy and save as FITS
@@ -206,7 +206,7 @@ class TestCalculateReprojection:
             source_hdus=source_hdu,
             target_wcs=target_wcs,
             shape_out=target_hdu.data.shape,
-            interpolation_mode="bilinear"
+            order="bilinear"
         )
 
         # Check that Reproject was initialized correctly

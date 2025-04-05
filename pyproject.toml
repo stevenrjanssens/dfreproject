@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dfreproject"
+version = "0.0.1"
+dynamic = []
+authors = [
+  { name = "Carter Rhea", email = "carter.rhea@dragonfly1000.com" },
+]
+description = "A high-performance Python package for reprojecting astronomical images between different coordinate systems with support for SIP distortion correction."
+readme = "README.md"
+requires-python = ">=3.8"
+
+
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Astronomy",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Operating System :: OS Independent",
+]
+
+dependencies = [
+  "numpy>=1.17.0",
+  "astropy>=4.0",
+  "torch>=1.9.0",
+]
+
+[project.optional-dependencies]
+docs = [
+  "sphinx>=5.0.0",
+  "sphinx-rtd-theme>=1.0.0",
+  "sphinx-autoapi>=2.0.0",
+  "nbsphinx>=0.8.9",
+  "ipykernel>=6.0.0",
+  "matplotlib>=3.4.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/DragonflyTelescope/dfreproject"
+Issues = "https://github.com/DragonflyTelescope/dfreproject/issues"

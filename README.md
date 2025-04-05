@@ -19,6 +19,12 @@ We achieve approximately 40X faster computations with this package. Take a look 
 
 ## Installation
 
+### Using PyPi
+If you want to install using PyPi (which is certainly the easiest way), you can simply run 
+```bash
+pip install dfreproject
+```
+
 ### Requirements
 
 - Python 3.7+
@@ -60,7 +66,7 @@ reprojected = calculate_reprojection(
     source_hdus=source_hdu,
     target_wcs=target_wcs,
     shape_out=target_hdu.data.shape,
-    interpolation_mode='bilinear'
+    order='bilinear'
 )
 
 # Convert back to NumPy and save as FITS
@@ -69,6 +75,10 @@ output_hdu = fits.PrimaryHDU(data=reprojected_np)
 output_hdu.header.update(target_wcs.to_header())
 output_hdu.writeto('reprojected_image.fits', overwrite=True)
 ```
+
+The arguments for `calculate_reprojection` are the same as for the standard reprojection options in the reproject package such as `reproject_interp`, `reproject_adaptive`, or `reproject_exact`.
+Therefore, it can be directly swapped for one of these by simply importing it with `from dfreproject import calculate_reprojection` and then using `calculate_reproject` instead of `reproject_interp`. 
+This comes with the caveat that the flux calculation most closely mimics that to `reproject_interp`.
 
 ## Demos and Examples
 
@@ -104,9 +114,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Citation
 

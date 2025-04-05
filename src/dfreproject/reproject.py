@@ -514,7 +514,7 @@ def calculate_reprojection(
     source_hdus: Union[PrimaryHDU, List[PrimaryHDU]],
     target_wcs: WCS,
     shape_out: Tuple[int, int],
-    interpolation_mode="nearest",
+    order="nearest",
     device=None
 ):
     """
@@ -537,7 +537,7 @@ def calculate_reprojection(
     shape_out: Tuple[int, int]
         Shape of the resampled array
 
-    interpolation_mode : str, default 'nearest'
+    order : str, default 'nearest'
         The interpolation method to use when resampling the source image.
         Options:
         - 'nearest' : Nearest neighbor interpolation (fastest, default)
@@ -581,7 +581,7 @@ def calculate_reprojection(
     ...     source_hdus=source_hdu,
     ...     target_wcs=target_wcs,
     ...     shape_out=target_hdu[0].data.shape,
-    ...     interpolation_mode='bilinear'
+    ...     order='bilinear'
     ... )
     >>>
     >>> # Convert back to NumPy and save as FITS
@@ -595,6 +595,6 @@ def calculate_reprojection(
     reprojection = Reproject(
         source_hdus=source_hdus, target_wcs=target_wcs, shape_out=shape_out, device=device
     )
-    result = reprojection.interpolate_source_image(interpolation_mode=interpolation_mode).cpu().numpy()
+    result = reprojection.interpolate_source_image(interpolation_mode=order).cpu().numpy()
     torch.cuda.empty_cache()
     return result
