@@ -15,7 +15,15 @@ from .sip import (
 from .utils import get_device
 
 EPSILON = 1e-10
+VALID_ORDERS = ['bicubic', 'bilinear', 'nearest', 'nearest-neighbors']
 
+def validate_interpolation_order(order):
+    if order not in VALID_ORDERS:
+        raise ValueError(f"order must be one of {' '.join(VALID_ORDERS)}")
+    elif order == 'nearest-neighbors':
+        return 'nearest'
+    else:
+        return order
 
 # Helper functions for trigonometric calculations
 def atan2d(y, x):
@@ -603,6 +611,7 @@ def calculate_reprojection(
     reprojection = Reproject(
         source_hdus=source_hdus, target_wcs=target_wcs, shape_out=shape_out, device=device
     )
-    result = reprojection.interpolate_source_image(interpolation_mode=order).cpu().numpy()
+    order = validate_interpolation_order(order)
+    result = reprojection.interpolate_source_image(interpolation_mode=order).cpu().numpy().astype(source_hdus[0].data.dtype)
     torch.cuda.empty_cache()
     return result
