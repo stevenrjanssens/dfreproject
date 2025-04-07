@@ -40,7 +40,7 @@ def generate_test_data(size, include_sip=True):
         input_wcs.wcs.ctype = ["RA---TAN-SIP", "DEC--TAN-SIP"]
 
         # Add SIP coefficients to the WCS header directly
-        header = input_wcs.to_header()
+        header = input_wcs.to_header(relax=True)
 
         # A_ORDER and B_ORDER specify the polynomial order (2 in this case)
         header['A_ORDER'] = 2
@@ -60,7 +60,7 @@ def generate_test_data(size, include_sip=True):
         header['B_0_1'] = 2.5e-7
 
         # Create a new WCS from this header
-        input_wcs = WCS(header)
+        input_wcs = WCS(header, relax=True)
 
     # Create output WCS (slightly offset)
     output_wcs = WCS(naxis=2)
@@ -75,7 +75,7 @@ def generate_test_data(size, include_sip=True):
         output_wcs.wcs.ctype = ["RA---TAN-SIP", "DEC--TAN-SIP"]
 
         # Add SIP coefficients to the WCS header directly
-        header = output_wcs.to_header()
+        header = output_wcs.to_header(relax=True)
 
         # A_ORDER and B_ORDER specify the polynomial order (2 in this case)
         header['A_ORDER'] = 2
@@ -95,7 +95,7 @@ def generate_test_data(size, include_sip=True):
         header['B_0_1'] = 2.3e-7
 
         # Create a new WCS from this header
-        output_wcs = WCS(header)
+        output_wcs = WCS(header, relax=True)
 
     return input_array, input_wcs, output_wcs, size
 
@@ -368,34 +368,34 @@ def create_visualizations(df, device):
 
 
 def main():
-    device = 'cuda'
+    device = 'cpu'
     # Image sizes to benchmark
-    image_sizes = [
-        #(256, 256),
-        #(512, 512),
-        #(1024, 1024),
-        (4000, 6000)
-    ]
-    # aspect_ratios = [1.0, 1.2, 1.5]
-    # num_sizes = 50
-    #
-    # must_have_sizes = [(256, 256), (512, 512), (1024, 1024), (2048, 2048), (4000, 6000)]
-    #
-    # # Generate widths and heights with varying aspect ratios
-    # widths = np.geomspace(256, 4000, num=num_sizes).astype(int)
-    # widths = np.unique(widths)
-    #
-    # # Build initial image sizes from aspect ratios
-    # image_sizes = []
-    # for i, w in enumerate(widths):
-    #     ar = aspect_ratios[i % len(aspect_ratios)]
-    #     h = int(w * ar)
-    #     image_sizes.append((w, h))
-    #
-    # # Combine and deduplicate with must-have sizes
-    # image_sizes.extend(must_have_sizes)
-    # image_sizes = list(set(image_sizes))  # remove duplicates
-    # image_sizes.sort()  # optional: sort for consistency
+    # image_sizes = [
+    #     #(256, 256),
+    #     #(512, 512),
+    #     #(1024, 1024),
+    #     (4000, 6000)
+    # ]
+    aspect_ratios = [1.0, 1.2, 1.5]
+    num_sizes = 50
+
+    must_have_sizes = [(256, 256), (512, 512), (1024, 1024), (2048, 2048), (4000, 6000)]
+
+    # Generate widths and heights with varying aspect ratios
+    widths = np.geomspace(256, 4000, num=num_sizes).astype(int)
+    widths = np.unique(widths)
+
+    # Build initial image sizes from aspect ratios
+    image_sizes = []
+    for i, w in enumerate(widths):
+        ar = aspect_ratios[i % len(aspect_ratios)]
+        h = int(w * ar)
+        image_sizes.append((w, h))
+
+    # Combine and deduplicate with must-have sizes
+    image_sizes.extend(must_have_sizes)
+    image_sizes = list(set(image_sizes))  # remove duplicates
+    image_sizes.sort()  # optional: sort for consistency
 
     # Interpolation methods to benchmark
     interpolation_methods = [
