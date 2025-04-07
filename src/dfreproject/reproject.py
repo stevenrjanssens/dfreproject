@@ -588,10 +588,9 @@ def calculate_reprojection(
     ...     shape_out=target_hdu[0].data.shape,
     ...     order='bilinear'
     ... )
-    >>>
-    >>> # Convert back to NumPy and save as FITS
-    >>> reprojected_np = reprojected.cpu().numpy()
-    >>> output_hdu = fits.PrimaryHDU(data=reprojected_np, header=target_hdu.header)
+    >>> # By default the resulting tensor is thrown to a numpy array
+    >>> # Save as FITS
+    >>> output_hdu = fits.PrimaryHDU(data=reprojected, header=target_hdu.header)
     >>> output_hdu.writeto('reprojected_image.fits', overwrite=True)
     """
     # Convert single HDU to list if not already a list

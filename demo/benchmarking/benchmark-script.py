@@ -371,9 +371,9 @@ def main():
     device = 'cuda'
     # Image sizes to benchmark
     image_sizes = [
-        (256, 256),
-        (512, 512),
-        (1024, 1024),
+        #(256, 256),
+        #(512, 512),
+        #(1024, 1024),
         (4000, 6000)
     ]
     # aspect_ratios = [1.0, 1.2, 1.5]

@@ -5,6 +5,9 @@ A high-performance Python package for reprojecting astronomical images between d
 [![Documentation Status](https://readthedocs.org/projects/dfreproject/badge/?version=latest)](https://dfreproject.readthedocs.io/en/latest/?badge=latest)
 [![Tests](https://github.com/DragonflyTelescope/dfreproject/actions/workflows/tests.yml/badge.svg)](https://github.com/DragonflyTelescope/dfreproject/actions/workflows/tests.yml)
 [![codecov](https://codecov.io/gh/DragonflyTelescope/dfreproject/branch/main/graph/badge.svg)](https://codecov.io/gh/DragonflyTelescope/dfreproject)
+[![DOI](https://zenodo.org/badge/936088731.svg)](https://doi.org/10.5281/zenodo.15170605)
+
+
 
 The idea behind this package was to make a stripped down version of the `reproject` package by astropy in order to reduce computational time.
 We achieve approximately 40X faster computations with this package. Take a look at the demos for an example.
@@ -55,11 +58,7 @@ pip install -e ".[docs]"
 ```python
 from astropy.io import fits
 from astropy.wcs import WCS
-<<<<<<< HEAD
-from dfreproject import calculate_reprojection
-=======
 from reprojection import calculate_reprojection
->>>>>>> 01cdde5 (expose calculate_reprojection method)
 
 # Load source and target images
 source_hdu = fits.open('source_image.fits')[0]
@@ -73,9 +72,8 @@ reprojected = calculate_reprojection(
     order='bilinear'
 )
 
-# Convert back to NumPy and save as FITS
-reprojected_np = reprojected.cpu().numpy()
-output_hdu = fits.PrimaryHDU(data=reprojected_np)
+# Save as FITS
+output_hdu = fits.PrimaryHDU(data=reprojected)
 output_hdu.header.update(target_wcs.to_header())
 output_hdu.writeto('reprojected_image.fits', overwrite=True)
 ```
@@ -131,3 +129,5 @@ TBD
 - Inspired by Astropy's reproject package
 - Accelerated with PyTorch
 - Documentation aided by Claude.ai
+
+The License for all past and present versions is  the GPL-3.0. 
