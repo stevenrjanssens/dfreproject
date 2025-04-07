@@ -1,8 +1,8 @@
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Optional
 
 import numpy as np
 import torch
-from astropy.io.fits import PrimaryHDU
+from astropy.io.fits import PrimaryHDU, Header
 from astropy.wcs import WCS
 
 
@@ -517,8 +517,8 @@ class Reproject:
 
 def calculate_reprojection(
     source_hdus: Union[PrimaryHDU, List[PrimaryHDU]],
-    target_wcs: WCS,
-    shape_out: Tuple[int, int],
+    target_wcs: Union[WCS, Header],
+    shape_out: Optional[Tuple[int, int]] = None,
     order="nearest",
     device=None
 ):
@@ -536,11 +536,11 @@ def calculate_reprojection(
         The source image HDU list containing the image data to be reprojected and
         its associated WCS information in the header.
 
-    target_wcs : WCS
-        WCS information fopr the target.
+    target_wcs : Union[WCS, Header]
+        WCS information fopr the target. If a Header is passed it will be transformed to WCS.
 
-    shape_out: Tuple[int, int]
-        Shape of the resampled array
+    shape_out: Optional[Tuple[int, int]]
+        Shape of the resampled array. If no argument is passed, then the output shape will be the same as the input shape.
 
     order : str, default 'nearest'
         The interpolation method to use when resampling the source image.
@@ -596,6 +596,10 @@ def calculate_reprojection(
     # Convert single HDU to list if not already a list
     if not isinstance(source_hdus, list):
         source_hdus = [source_hdus]
+    if isinstance(target_wcs, Header):
+        target_wcs = WCS(target_wcs)
+    if not shape_out:
+        shape_out = source_hdus[0].data.shape
     reprojection = Reproject(
         source_hdus=source_hdus, target_wcs=target_wcs, shape_out=shape_out, device=device
     )

@@ -85,7 +85,7 @@ reprojected = calculate_reprojection(
 )
 ```
 
-
+The `target_wcs` argument can be passed as a header similar to `reproject`. Additionally, if `shape_out` is not provided, then the shape will be the same as the input.
 
 
 # Methods
