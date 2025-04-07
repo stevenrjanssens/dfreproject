@@ -18,11 +18,11 @@ authors:
     orcid: 0000-0003-0327-3322
     affiliation: 1
   - name: Imad Pasha
-    affiliation: 1
+    affiliation: "1, 3"
   - name: Roberto Abraham
     affiliation: "1, 4, 5"
   - name: William Bowman
-    affiliation: 1
+    affiliation: "1, 3"
   - name: Deborah Lokhorst
     affiliation: "1, 6"
   - name: Seery Chen
