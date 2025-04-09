@@ -47,35 +47,35 @@ bibliography: dfreproject.bib
 ---
 
 # Summary
-Coadded astronomical images generally consist of several, if not hundreds, of individual exposures. Each exposure is taken at 
-a different time with minute differences in the positions of stars and other objects in the field due to the movement of the celestial bodies and changes/imperfections in the lense.
-In order to combine individual exposures it is required to ensure that each exposure is properly aligned. 
+Coadded astronomical images generally consist of several, if not hundreds, individual exposures. Each exposure is taken at 
+a different time with minute differences in the positions of stars and other objects in the field due to the movement of the celestial bodies and changes/imperfections in the lens.
+One must ensure that each exposure is adequately aligned to combine individual exposures. 
 Traditionally, this is done by reprojecting each exposure onto a common target grid defined in a World Coordinate System (WCS). 
 
-In this package, we constructed functions that breakdown the coordinate transformations using Gnomonic projection to define 
-the pixel-by-pixel shift from the source plane to the target plane. Additionally, we provide the requisite tools for interpolating the source image onto the target plane.
-With a single function call, the user is able to calculate the complete reprojection of the source image onto the target plane.
-This module follows the FITS and SIP formats layed out in the following papers: @greisen_representations_2002, @calabretta_representations_2002, and @shupe_sip_2005.
-We report a speedup of up to 20X when run on a GPU and 10X when run on a CPU compared to common alternatives.
+In this package, we constructed functions that break down the coordinate transformations using Gnomonic projection to define 
+the pixel-by-pixel shift from the source to the target plane. Additionally, we provide the requisite tools for interpolating the source image onto the target plane.
+With a single function call, the user can calculate the complete reprojection of the source image onto the target plane.
+This module follows the FITS and SIP formats laid out in the following papers: @greisen_representations_2002, @calabretta_representations_2002, and @shupe_sip_2005.
+Compared to common alternatives, we report a speedup of up to 20X when run on a GPU and 10X when run on a CPU.
 
 # Statement of need
 
 `dfreproject` is a Python package for astronomical image reprojection using `PyTorch` [@paszke_pytorch_2019] as the computational backbone.
-This package was developed out of a need for a fast reprojection code that did not rely on pre-existing WCS calculations such as those found in `astropy` or `WCSLIB` [@astropy_collaboration_astropy_2013; @astropy_collaboration_astropy_2018; @astropy_collaboration_astropy_2022].
-We do however use `astropy.wcs` to read the header information from the input fits files. 
+This package was developed to meet a need for a fast reprojection code that does not rely on pre-existing WCS calculations such as those found in `astropy` or `WCSLIB` [@astropy_collaboration_astropy_2013; @astropy_collaboration_astropy_2018; @astropy_collaboration_astropy_2022].
+However, we use `astropy.wcs` to read the header information from the input fits files. 
 
-Several packages already exist for calculating and applying the reprojection of a source image onto a target plane such as 
+Several packages already exist for calculating and applying the reprojection of a source image onto a target plane, such as 
 `reproject` [@robitaille_reproject_2020] or `astroalign` [@beroiz_astroalign_2020]. 
-While these packages excel at easy-to-use, general-purpose astronomical image reprojection, they function solely on CPUs and therefore can serve as a computational bottleneck in data reduction pipelines.
-It was with this in mind that we developed `dfreproject`.
-`dfreproject`'s primary purpose is to reproject the observations taken by the new version of the Dragonfly Telescopic Array, Mothra. 
-Mothra will contain 1000 individual lenses all simulataneously taking exposures with a cadence of a few minutes. 
+While these packages excel at easy-to-use, general-purpose astronomical image reprojection, they function solely on CPUs and can, therefore, serve as a computational bottleneck in data reduction pipelines.
+It was with this in mind that we developed `dfreproject.`
+`dfreproject`'s primary purpose is reprojecting the observations taken by the new version of the Dragonfly Telescopic Array, Mothra. 
+Mothra will contain 1000 individual lenses, all simultaneously taking exposures with a cadence of a few minutes. 
 Therefore, it is paramount to have a fast and accurate reprojection method.
 By leveraging `PyTorch` for vectorization and parallelization via the GPU,
-we are able to achieve a considerable speedup (up to nearly 40X) over standard methods.
+we can achieve a considerable speedup (up to nearly 20X) over standard methods.
 
-`dfreproject` can be used as a direct replacment for `reproject.reproject_interp` by simply importing `dfreproject` instead of `reproject` such as:
-```python 
+`dfreproject` can be used as a direct replacement for `reproject.reproject_interp` by simply importing `dfreproject` instead of `reproject` such as:
+```Python 
 from dfreproject import calculate_reprojection
 reprojected = calculate_reprojection(
     source_hdus=source_hdu,
@@ -85,26 +85,26 @@ reprojected = calculate_reprojection(
 )
 ```
 
-The `target_wcs` argument can be passed as a header similar to `reproject`. Additionally, if `shape_out` is not provided, then the shape will be the same as the input.
+The `target_wcs` argument can be passed as a header similar to `reproject.` Additionally, if `shape_out` is not provided, the shape will be the same as the input.
 
 
 # Methods
-In order to reproject an image onto a new coordinate plane, we must perform three intermediate calculations. 
+We must perform three intermediate calculations to reproject an image onto a new coordinate plane. 
 To do this, we use the target and source WCS. 
 
 Before defining the steps, there are a few terms to define:
 
 - SIP: Standard Imaging Polynomial. This convention allows us to represent non-linear geometric distortions as a simple polynomial.
-The order and coefficients of this polynomial is stored in the header. The SIP is broken down into four individual polynomials, SIP\_A, SIP\_B, SIP\_INV\_A, and SIP\_INV\_B where
+The order and coefficients of this polynomial are stored in the header. The SIP is broken down into four individual polynomials, SIP\_A, SIP\_B, SIP\_INV\_A, and SIP\_INV\_B where
 SIP\_A defines the polynomial applied to the x-coordinates, SIP\_B defines the polynomial applied to the y-coordinates, and SIP\_INV\_A and SIP\_INV\_B define the inverse operations.
 For an in-depth discussion on SIP, please see @shupe_sip_2005.
 
-- CD Matrix: Coordinate Description Matrix. This is  a 2X2 matrix that encodes the rotation, skew, and scaling of the image. 
-The values are conveniently stored in the header. The CD matrix may also be constructed from the PC, Projection Coordinate, matrix multiplied by the CDELT values.
+CD Matrix: Coordinate Description Matrix. This is a 2X2 matrix that encodes the image's rotation, skew, and scaling. 
+The values are conveniently stored in the header. The CD matrix may also be constructed from the PC Projection Coordinate matrix multiplied by the CDELT values.
 
 The steps are as follows:
 
-1. For each pixel calculate the corresponding celestial coordinate using the target WCS
+1. For each pixel, calculate the corresponding celestial coordinate using the target WCS
 
    1. Apply shift
    
@@ -128,12 +128,12 @@ The steps are as follows:
 
 3. Interpolate the source image onto the newly calculated grid 
 
-In the final interpolation step we include local flux conservation by simultaneously projecting an identity tensor called the footprint.
+In the final interpolation step, we include local flux conservation by simultaneously projecting an identity tensor called the footprint.
 The final reprojected frame is normalized by this footprint.
 
 ## Coordinate Transformation
-In this section we describe the coordinate transformation using the Gnomonic projection. 
-Please note that we include an additional shift of 1 pixel to handle the fact that Python is 0-based.
+In this section, we describe the coordinate transformation using the Gnomonic projection. 
+Please note that we include an additional shift of 1 pixel to handle Python being 0-based.
 We will be using the following definitions for values: 
 
 $x,y$ - pixel values
@@ -144,7 +144,7 @@ $\mathrm{crpix}_1, \mathrm{crpix}_2$ - center pixels as defined in WCS
 $\mathrm{dec}_0, \mathrm{ra}_0$ - Central Declination and Right Ascension as defined in the WCS.
 
 
-All trigonometric functions require the values be in radians.
+All trigonometric functions require the values to be in radians.
 
 ### To celestial coordinates
 For these calculations, we use the WCS information for the target plane.
@@ -205,7 +205,7 @@ $$x = u + (\mathrm{crpix}_1 - 1)$$
 $$y = v + (\mathrm{crpix}_2 - 1)$$
 
 ## Demo
-For this demonstration we created two small (50x50) FITS files with a several pixel offset.
+We created two small (50x50) FITS files for this demonstration with a several pixel offset.
 In \autoref{fig:demo} from left to right, we show the original image, the `dfreproject` solution, the `reproject` solution, and the relative error between the two.
 For both solutions, we use a nearest-neighbor interpolation scheme.
 
@@ -214,7 +214,7 @@ For both solutions, we use a nearest-neighbor interpolation scheme.
 
 
 ## Speed Comparison
-In order to compare the execution times, we created a benchmarking script (that can be found in the demos/benchmarking directory under `benchmark-script.py` and the figures are constructed with `benchmark-plotter.py`).
+To compare the execution times, we created a benchmarking script (which can be found in the demos/benchmarking directory under `benchmark-script.py'; the figures are constructed with `benchmark-plotter.py`).
 This test is run between `dfreproject` and `reproject`.
 We benchmark the three interpolation schemes with and without SIP distortion for images sized 256x256, 512x512, 1024x1024, and 4000x6000\footnote{this matches the size of Dragonfly images}.
 \autoref{fig:gpu-comparison} shows the results of this benchmarking when `dfreproject` is run using a GPU (NVIDIA GeForce RTX 4060).
@@ -224,7 +224,7 @@ We benchmark the three interpolation schemes with and without SIP distortion for
 
 
 As evidenced by this figure, `dfreproject` has a significant speed advantage over `reproject` for larger images regardless of the type of interpolation scheme. 
-The speedup is most pronounced in the case of where SIP distortions are included.
+The speedup is most pronounced in the case where SIP distortions are included.
 
 In \autoref{fig:cpu-comparison}, we display the same results except we used a CPU (Intel® Core™ i9-14900HX).
 
@@ -237,8 +237,7 @@ Although the speedup on the CPU is not as impressive as on the GPU, it is still 
 All code can be found in the `demo` directory.
 
 # Acknowledgements
-We would like to acknowledge the Dragonfly FRO. We would like to give a particularly warm thank you to Lisa Sloan for her project management skills.
+We acknowledge the Dragonfly FRO and particularly thank Lisa Sloan for her project management skills.
 
 We use the cmcrameri scientific color maps in our demos [@crameri_scientific_2023].
-
 # References
