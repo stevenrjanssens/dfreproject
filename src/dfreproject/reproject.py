@@ -19,7 +19,7 @@ VALID_ORDERS = ['bicubic', 'bilinear', 'nearest', 'nearest-neighbors']
 
 def validate_interpolation_order(order):
     if order not in VALID_ORDERS:
-        raise ValueError(f"order must be one of {' '.join(VALID_ORDERS)}")
+        raise ValueError(f"order must be one of: {', '.join(VALID_ORDERS)}")
     elif order == 'nearest-neighbors':
         return 'nearest'
     else:
