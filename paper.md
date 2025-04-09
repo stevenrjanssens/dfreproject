@@ -56,7 +56,7 @@ In this package, we constructed functions that breakdown the coordinate transfor
 the pixel-by-pixel shift from the source plane to the target plane. Additionally, we provide the requisite tools for interpolating the source image onto the target plane.
 With a single function call, the user is able to calculate the complete reprojection of the source image onto the target plane.
 This module follows the FITS and SIP formats layed out in the following papers: @greisen_representations_2002, @calabretta_representations_2002, and @shupe_sip_2005.
-We report a speedup of up to 40X when run on a GPU and 15X when run on a CPU compared to common alternatives.
+We report a speedup of up to 20X when run on a GPU and 10X when run on a CPU compared to common alternatives.
 
 # Statement of need
 
