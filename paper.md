@@ -21,7 +21,8 @@ authors:
     affiliation: "1, 3"
   - name: Roberto Abraham
     affiliation: "1, 4, 5"
-  - name: William Bowman
+  - name: William P Bowman
+    orcid: 0000-0003-4381-5245
     affiliation: "1, 3"
   - name: Deborah Lokhorst
     affiliation: "1, 6"
@@ -47,32 +48,25 @@ bibliography: dfreproject.bib
 ---
 
 # Summary
-Coadded astronomical images generally consist of several, if not hundreds, individual exposures. Each exposure is taken at 
-a different time with minute differences in the positions of stars and other objects in the field due to the movement of the celestial bodies and changes/imperfections in the lens.
-One must ensure that each exposure is adequately aligned to combine individual exposures. 
-Traditionally, this is done by reprojecting each exposure onto a common target grid defined in a World Coordinate System (WCS). 
+Deep astronomical images are often constructed by digitially stacking many individual sub-exposures. Each sub-exposure is expected to show small differences in the positions of stars and other objects in the field, due to the movement of the celestial bodies, changes/imperfections in the opto-mechanical imaging train, and other factors.
+To maximize image quality, one must ensure that each sub-exposure is aligned to a common frame of reference prior to stacking. This is done by reprojecting each exposure onto a common target grid defined using a World Coordinate System (WCS) that is defined by mapping the known angular positions of reference objects to their observed spatial positions on each image. The transformations needed to reproject images involve complicated trigonometric expressions which can be slow to compute, so reprojection can be a major bottleneck in image processing pipelines.
 
-In this package, we constructed functions that break down the coordinate transformations using Gnomonic projection to define 
-the pixel-by-pixel shift from the source to the target plane. Additionally, we provide the requisite tools for interpolating the source image onto the target plane.
-With a single function call, the user can calculate the complete reprojection of the source image onto the target plane.
+To make astronomical reprojections faster to implement in pipelines, we have written `dfreproject`, a Python package of GPU-optimized functions for this purpose. The package's functions break down coordinate transformations using Gnomonic projections to define 
+pixel-by-pixel shifts from the source to the target plane. The package also provides tools for interpolating a source image onto a target plane with a single function call.
 This module follows the FITS and SIP formats laid out in the following papers: @greisen_representations_2002, @calabretta_representations_2002, and @shupe_sip_2005.
-Compared to common alternatives, we report a speedup of up to 20X when run on a GPU and 10X when run on a CPU.
+Compared to common alternatives, `dfreproject`'s routines result in speedups of up to 20X when run on a GPU and 10X when run on a CPU.
 
 # Statement of need
 
-`dfreproject` is a Python package for astronomical image reprojection using `PyTorch` [@paszke_pytorch_2019] as the computational backbone.
-This package was developed to meet a need for a fast reprojection code that does not rely on pre-existing WCS calculations such as those found in `astropy` or `WCSLIB` [@astropy_collaboration_astropy_2013; @astropy_collaboration_astropy_2018; @astropy_collaboration_astropy_2022].
-However, we use `astropy.wcs` to read the header information from the input fits files. 
-
 Several packages already exist for calculating and applying the reprojection of a source image onto a target plane, such as 
-`reproject` [@robitaille_reproject_2020] or `astroalign` [@beroiz_astroalign_2020]. 
-While these packages excel at easy-to-use, general-purpose astronomical image reprojection, they function solely on CPUs and can, therefore, serve as a computational bottleneck in data reduction pipelines.
-It was with this in mind that we developed `dfreproject.`
-`dfreproject`'s primary purpose is reprojecting the observations taken by the new version of the Dragonfly Telescopic Array, Mothra. 
-Mothra will contain 1000 individual lenses, all simultaneously taking exposures with a cadence of a few minutes. 
-Therefore, it is paramount to have a fast and accurate reprojection method.
-By leveraging `PyTorch` for vectorization and parallelization via the GPU,
-we can achieve a considerable speedup (up to nearly 20X) over standard methods.
+`reproject` [@robitaille_reproject_2020] or `astroalign` [@beroiz_astroalign_2020]. These packages excel at easy-to-use, general-purpose astronomical image reprojection, but they function solely on CPUs and can be computational bottlenecks in some data reduction pipelines. The `dfreproject` package harnesses GPUs (using `PyTorch` [@paszke_pytorch_2019] as its computational backbone) to improve computational efficiency. The package has minimal reliance on pre-existing WCS packages such as those found in `astropy` or `WCSLIB` [@astropy_collaboration_astropy_2013; @astropy_collaboration_astropy_2018; @astropy_collaboration_astropy_2022], with such packages being used only for convenience in non-computationally expensive steps (such as using `astropy.wcs` to read the header information from the input fits files). 
+
+`dfreproject`'s primary purpose is to reproject observations taken by the new version of the Dragonfly Telephoto Array, which will be known as MOTHRA (Massive Optical Telephoto H-alpha suRvey Array). 
+MOTHRA will contain 1100 individual lenses, all simultaneously taking exposures with a cadence of a few minutes. 
+The volume of data obtained will be large, and it is paramount that the processing pipeline incorporates fast and accurate reprojection methods.
+As shown below, by leveraging `PyTorch` for vectorization and parallelization via the GPU,
+`dfreproject` achieves a considerable speedup (up to nearly 20X) over standard methods.
+
 
 `dfreproject` can be used as a direct replacement for `reproject.reproject_interp` by simply importing `dfreproject` instead of `reproject` such as:
 ```Python 
