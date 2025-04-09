@@ -1,16 +1,29 @@
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Optional
 
 import numpy as np
 import torch
-from astropy.io.fits import PrimaryHDU
+from astropy.io.fits import PrimaryHDU, Header
 from astropy.wcs import WCS
 
-from .sip import (apply_inverse_sip_distortion,
-                             apply_sip_distortion, get_sip_coeffs)
+
+from .sip import (
+    apply_inverse_sip_distortion,
+    apply_sip_distortion,
+    get_sip_coeffs
+)
+
 from .utils import get_device
 
 EPSILON = 1e-10
+VALID_ORDERS = ['bicubic', 'bilinear', 'nearest', 'nearest-neighbors']
 
+def validate_interpolation_order(order):
+    if order not in VALID_ORDERS:
+        raise ValueError(f"order must be one of: {', '.join(VALID_ORDERS)}")
+    elif order == 'nearest-neighbors':
+        return 'nearest'
+    else:
+        return order
 
 # Helper functions for trigonometric calculations
 def atan2d(y, x):
@@ -512,8 +525,8 @@ class Reproject:
 
 def calculate_reprojection(
     source_hdus: Union[PrimaryHDU, List[PrimaryHDU]],
-    target_wcs: WCS,
-    shape_out: Tuple[int, int],
+    target_wcs: Union[WCS, Header],
+    shape_out: Optional[Tuple[int, int]] = None,
     order="nearest",
     device=None
 ):
@@ -531,11 +544,11 @@ def calculate_reprojection(
         The source image HDU list containing the image data to be reprojected and
         its associated WCS information in the header.
 
-    target_wcs : WCS
-        WCS information fopr the target.
+    target_wcs : Union[WCS, Header]
+        WCS information fopr the target. If a Header is passed it will be transformed to WCS.
 
-    shape_out: Tuple[int, int]
-        Shape of the resampled array
+    shape_out: Optional[Tuple[int, int]]
+        Shape of the resampled array. If no argument is passed, then the output shape will be the same as the input shape.
 
     order : str, default 'nearest'
         The interpolation method to use when resampling the source image.
@@ -583,18 +596,22 @@ def calculate_reprojection(
     ...     shape_out=target_hdu[0].data.shape,
     ...     order='bilinear'
     ... )
-    >>>
-    >>> # Convert back to NumPy and save as FITS
-    >>> reprojected_np = reprojected.cpu().numpy()
-    >>> output_hdu = fits.PrimaryHDU(data=reprojected_np, header=target_hdu.header)
+    >>> # By default the resulting tensor is thrown to a numpy array
+    >>> # Save as FITS
+    >>> output_hdu = fits.PrimaryHDU(data=reprojected, header=target_hdu.header)
     >>> output_hdu.writeto('reprojected_image.fits', overwrite=True)
     """
     # Convert single HDU to list if not already a list
     if not isinstance(source_hdus, list):
         source_hdus = [source_hdus]
+    if isinstance(target_wcs, Header):
+        target_wcs = WCS(target_wcs)
+    if not shape_out:
+        shape_out = source_hdus[0].data.shape
     reprojection = Reproject(
         source_hdus=source_hdus, target_wcs=target_wcs, shape_out=shape_out, device=device
     )
-    result = reprojection.interpolate_source_image(interpolation_mode=order).cpu().numpy()
+    order = validate_interpolation_order(order)
+    result = reprojection.interpolate_source_image(interpolation_mode=order).cpu().numpy().astype(source_hdus[0].data.dtype)
     torch.cuda.empty_cache()
     return result

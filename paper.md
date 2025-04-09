@@ -214,9 +214,9 @@ For both solutions, we use a nearest-neighbor interpolation scheme.
 
 
 ## Speed Comparison
-To compare the execution times, we created a benchmarking script (which can be found in the demos/benchmarking directory under `benchmark-script.py`; the figures are constructed with `benchmark-plotter.py`).
+To compare the execution times, we created a benchmarking script (which can be found in the demos/benchmarking directory under `benchmark-script.py'; the figures are constructed with `benchmark-plotter.py`).
 This test is run between `dfreproject` and `reproject`.
-We benchmark the three interpolation schemes with and without SIP distortion for images sized from 256x256 to 4000x6000 (this is the approximate size of Dragonfly images).
+We benchmark the three interpolation schemes with and without SIP distortion for images sized 256x256, 512x512, 1024x1024, and 4000x6000\footnote{this matches the size of Dragonfly images}.
 \autoref{fig:gpu-comparison} shows the results of this benchmarking when `dfreproject` is run using a GPU (NVIDIA GeForce RTX 4060).
 
 
@@ -240,6 +240,4 @@ All code can be found in the `demo` directory.
 We acknowledge the Dragonfly FRO and particularly thank Lisa Sloan for her project management skills.
 
 We use the cmcrameri scientific color maps in our demos [@crameri_scientific_2023].
-
-
 # References
