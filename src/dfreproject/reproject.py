@@ -518,7 +518,6 @@ class Reproject:
             print("WARNING: No valid pixels found in footprint!")
             # FALLBACK: Use raw interpolated values without footprint correction
             print("Fallback: Using raw interpolated values")
-            result = resampled_image
 
         return result
 
