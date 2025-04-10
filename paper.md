@@ -199,9 +199,11 @@ $$x = u + (\mathrm{crpix}_1 - 1)$$
 $$y = v + (\mathrm{crpix}_2 - 1)$$
 
 ## Demo
-We created two small (50x50) FITS files for this demonstration with a several pixel offset.
+We created two small (50x50) FITS files for this demonstration with a pixel offset of 0.5 pixels and a 0.005 degree offset in the heeader.
 In \autoref{fig:demo} from left to right, we show the original image, the `dfreproject` solution, the `reproject` solution, and the relative error between the two.
-For both solutions, we use a nearest-neighbor interpolation scheme.
+We define the relative error as $100 * \frac{\mathrm{dfreproject\_solution} - reproject\_solution}{reproject\_solution}$.
+For both solutions, we use a nearest-neighbor interpolation scheme. In the noisy regions of the image, the differences in the reprojections is pure noise. 
+There are slight differences in the solutions at the locations of the Gaussians which is attributable to small differences in the normalization. 
 
 
 ![\label{fig:demo}](demo/comparison.png)
