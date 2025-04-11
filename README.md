@@ -10,7 +10,7 @@ A high-performance Python package for reprojecting astronomical images between d
 
 
 The idea behind this package was to make a stripped down version of the `reproject` package by astropy in order to reduce computational time.
-We achieve approximately 20X faster computations with this package using the GPU and 10X using the CPU for images taken by the Dragonfly Telescopic Array. Take a look at the demos for an example.
+We achieve approximately 20X faster computations with this package using the GPU and 10X using the CPU for images taken by the Dragonfly Telephoto Array. Take a look at the demos for an example.
 
 ## Features
 
