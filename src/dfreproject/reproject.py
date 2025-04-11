@@ -1,3 +1,4 @@
+import logging
 from typing import List, Tuple, Union, Optional
 
 import numpy as np
@@ -5,14 +6,15 @@ import torch
 from astropy.io.fits import PrimaryHDU, Header
 from astropy.wcs import WCS
 
-
 from .sip import (
     apply_inverse_sip_distortion,
     apply_sip_distortion,
     get_sip_coeffs
 )
-
 from .utils import get_device
+
+
+logger = logging.getLogger(__name__)
 
 EPSILON = 1e-10
 VALID_ORDERS = ['bicubic', 'bilinear', 'nearest', 'nearest-neighbors']
@@ -515,9 +517,7 @@ class Reproject:
                 resampled_image[valid_pixels] / resampled_footprint[valid_pixels]
             )
         else:
-            print("WARNING: No valid pixels found in footprint!")
-            # FALLBACK: Use raw interpolated values without footprint correction
-            print("Fallback: Using raw interpolated values")
+            logger.warning("No valid pixels found in footprint! Using raw interpolated values")
 
         return result
 

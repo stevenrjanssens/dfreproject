@@ -1,4 +1,9 @@
+import logging
+
 import torch
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_device():
@@ -17,6 +22,5 @@ def get_device():
         else:
             return torch.device("cpu")
     except Exception as e:
-        print(f"CUDA error detected: {e}")
-        print("Falling back to CPU.")
+        logger.warning(f"CUDA error: {e}. Falling back to CPU.")
         return torch.device("cpu")
