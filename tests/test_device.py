@@ -44,13 +44,13 @@ class TestDeviceDetection:
         # Mock torch.cuda.is_available to raise an exception
         with mock.patch('torch.cuda.is_available', side_effect=RuntimeError("CUDA error")):
             # Capture stdout to verify the error message
-            with mock.patch('builtins.print') as mock_print:
+            with mock.patch('dfreproject.utils.logger.warning') as mock_warning:
                 device = get_device()
                 # Check that it fell back to CPU
                 assert device.type == 'cpu'
                 # Check that error message was printed
-                assert mock_print.call_count >= 1
-                assert any("CUDA error" in str(args) for args, _ in mock_print.call_args_list)
+                assert mock_warning.call_count >= 1
+                assert any("CUDA error" in str(args) for args, _ in mock_warning.call_args_list)
 
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
     def test_get_device_real_cuda(self):

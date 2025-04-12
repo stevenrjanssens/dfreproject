@@ -1,3 +1,4 @@
+import logging
 from typing import List, Tuple, Union, Optional
 
 import numpy as np
@@ -5,14 +6,15 @@ import torch
 from astropy.io.fits import PrimaryHDU, Header
 from astropy.wcs import WCS
 
-
 from .sip import (
     apply_inverse_sip_distortion,
     apply_sip_distortion,
     get_sip_coeffs
 )
-
 from .utils import get_device
+
+
+logger = logging.getLogger(__name__)
 
 EPSILON = 1e-10
 VALID_ORDERS = ['bicubic', 'bilinear', 'nearest', 'nearest-neighbors']
@@ -52,7 +54,12 @@ def interpolate_image(
 
 class Reproject:
     def __init__(
-        self, source_hdus: List[PrimaryHDU], target_wcs: WCS, shape_out: Tuple[int, int], device=None
+        self,
+        source_hdus: List[PrimaryHDU],
+        target_wcs: WCS,
+        shape_out: Tuple[int, int],
+        device: str = None,
+        num_threads: int = None
     ):
         """
         Initialize a dfreproject operation between source and target image frames.
@@ -76,6 +83,9 @@ class Reproject:
         device: str
             Device to use for computations. Defaults to GPU if available otherwise uses CPU
 
+        num_threads: int
+            Number of threads to use on CPU
+
         Notes
         -----
         This constructor creates a coordinate grid spanning the entire target image,
@@ -96,7 +106,12 @@ class Reproject:
             self.device = get_device()
         else:
             self.device = torch.device(device)
+
+        if num_threads:
+            torch.set_num_threads(num_threads)
+
         self.batch_source_images = self._prepare_source_images(source_hdus)
+
         # Initialize the WCS objects
         self.batch_source_wcs_params = self._prepare_batch_wcs_params(source_hdus)
         self.target_wcs_params = self._extract_wcs_params(target_wcs)
@@ -515,10 +530,7 @@ class Reproject:
                 resampled_image[valid_pixels] / resampled_footprint[valid_pixels]
             )
         else:
-            print("WARNING: No valid pixels found in footprint!")
-            # FALLBACK: Use raw interpolated values without footprint correction
-            print("Fallback: Using raw interpolated values")
-            result = resampled_image
+            logger.warning("No valid pixels found in footprint! Using raw interpolated values")
 
         return result
 
@@ -527,8 +539,9 @@ def calculate_reprojection(
     source_hdus: Union[PrimaryHDU, List[PrimaryHDU]],
     target_wcs: Union[WCS, Header],
     shape_out: Optional[Tuple[int, int]] = None,
-    order="nearest",
-    device=None
+    order: str = "nearest",
+    device: str = None,
+    num_threads: int = None
 ):
     """
     Reproject an astronomical image from a source WCS to a target WCS.
@@ -559,6 +572,9 @@ def calculate_reprojection(
 
     device: str
             Device to use for computations. Defaults to GPU if available otherwise uses CPU
+
+    num_threads: int
+        Number of threads to use on CPU
 
     Returns
     -------
@@ -608,9 +624,11 @@ def calculate_reprojection(
         target_wcs = WCS(target_wcs)
     if not shape_out:
         shape_out = source_hdus[0].data.shape
-    reprojection = Reproject(
-        source_hdus=source_hdus, target_wcs=target_wcs, shape_out=shape_out, device=device
-    )
+    reprojection = Reproject(source_hdus=source_hdus,
+                             target_wcs=target_wcs,
+                             shape_out=shape_out,
+                             device=device,
+                             num_threads=num_threads)
     order = validate_interpolation_order(order)
     result = reprojection.interpolate_source_image(interpolation_mode=order).cpu().numpy().astype(source_hdus[0].data.dtype)
     torch.cuda.empty_cache()
