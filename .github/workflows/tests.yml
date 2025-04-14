@@ -2,9 +2,9 @@ name: Tests
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, JOSS ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main, master, JOSS ]
   workflow_dispatch:
 
 jobs:
@@ -54,3 +54,5 @@ jobs:
         file: ./coverage.xml
         flags: unittests
         fail_ci_if_error: false
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
