@@ -102,6 +102,23 @@ class TestSIPFunctions:
         assert u_dist.item() == pytest.approx(expected_u_dist.item(), abs=1e-5)
         assert v_dist.item() == pytest.approx(expected_v_dist.item(), abs=1e-5)
 
+    def test_apply_sip_distortion_numpy(self, mock_sip_coeffs, device):
+        """Test applying SIP distortion to coordinates."""
+        # Test point away from reference pixel
+        u = 10.0
+        v = 20.0
+
+        # Apply distortion
+        u_dist, v_dist = apply_sip_distortion(u, v, mock_sip_coeffs, device)
+
+        # Calculate expected results manually
+        expected_u_dist = u + (0.001 * v + 0.002 * u + 0.0001 * u * u + 0.0002 * u * v + 0.0003 * v * v)
+        expected_v_dist = v + (0.002 * v + 0.001 * u + 0.0003 * u * u + 0.0001 * u * v + 0.0002 * v * v)
+
+        # Check that results match expected values
+        assert u_dist.item() == pytest.approx(expected_u_dist, abs=1e-5)
+        assert v_dist.item() == pytest.approx(expected_v_dist, abs=1e-5)
+
     def test_apply_sip_distortion_batch(self, mock_sip_coeffs, device):
         """Test applying SIP distortion to batches of coordinates."""
         # Create a batch of coordinates
@@ -126,6 +143,32 @@ class TestSIPFunctions:
 
             assert u_dist[i].item() == pytest.approx(expected_u_dist.item(), abs=1e-5)
             assert v_dist[i].item() == pytest.approx(expected_v_dist.item(), abs=1e-5)
+
+    def test_apply_sip_distortion_batch_numpy(self, mock_sip_coeffs, device):
+        """Test applying SIP distortion to batches of coordinates."""
+        # Create a batch of coordinates
+        u = np.array([10.0, 20.0, 30.0])
+        v = np.array([20.0, 30.0, 40.0])
+
+        # Apply distortion to batch
+        u_dist, v_dist = apply_sip_distortion(u, v, mock_sip_coeffs, device)
+
+        # Check batch size is maintained
+        assert u_dist.shape == u.shape
+        assert v_dist.shape == v.shape
+
+        # Check each coordinate was properly distorted
+        for i in range(len(u)):
+            u_i = u[i]
+            v_i = v[i]
+            expected_u_dist = u_i + (
+                        0.001 * v_i + 0.002 * u_i + 0.0001 * u_i * u_i + 0.0002 * u_i * v_i + 0.0003 * v_i * v_i)
+            expected_v_dist = v_i + (
+                        0.002 * v_i + 0.001 * u_i + 0.0003 * u_i * u_i + 0.0001 * u_i * v_i + 0.0002 * v_i * v_i)
+
+            assert u_dist[i].item() == pytest.approx(expected_u_dist, abs=1e-5)
+            assert v_dist[i].item() == pytest.approx(expected_v_dist, abs=1e-5)
+
 
     def test_apply_sip_distortion_2d_grid(self, mock_sip_coeffs, device):
         """Test applying SIP distortion to a 2D grid."""
@@ -171,6 +214,22 @@ class TestSIPFunctions:
         assert u_corr.item() == pytest.approx(u.item(), abs=1e-2)
         assert v_corr.item() == pytest.approx(v.item(), abs=1e-2)
 
+    def test_apply_inverse_sip_distortion_numpy(self, mock_sip_coeffs, device):
+        """Test applying inverse SIP distortion to coordinates."""
+        # Test point
+        u = torch.tensor(10.0, device=device)
+        v = torch.tensor(20.0, device=device)
+
+        # First apply distortion to get distorted coordinates
+        u_dist, v_dist = apply_sip_distortion(u, v, mock_sip_coeffs, device)
+
+        # Now apply inverse distortion
+        u_corr, v_corr = apply_inverse_sip_distortion(u_dist.cpu().numpy(), v_dist.cpu().numpy(), mock_sip_coeffs, device)
+
+        # Should get back close to the original coordinates
+        assert u_corr.item() == pytest.approx(u.item(), abs=1e-2)
+        assert v_corr.item() == pytest.approx(v.item(), abs=1e-2)
+
     def test_inverse_sip_with_no_inverse_coeffs(self, mock_sip_coeffs_no_inverse, device):
         """Test applying inverse SIP when no inverse coefficients are available."""
         # Test point
@@ -199,6 +258,24 @@ class TestSIPFunctions:
         # Now apply iterative inverse
         u_corr, v_corr = iterative_inverse_sip(
             u_dist, v_dist, mock_sip_coeffs, device, max_iter=10, tol=1e-8
+        )
+
+        # Should get back close to the original coordinates
+        assert u_corr.item() == pytest.approx(u.item(), abs=1e-5)
+        assert v_corr.item() == pytest.approx(v.item(), abs=1e-5)
+
+    def test_iterative_inverse_sip_numpy(self, mock_sip_coeffs, device):
+        """Test the iterative inverse SIP algorithm directly."""
+        # Test point
+        u = torch.tensor(10.0, device=device)
+        v = torch.tensor(20.0, device=device)
+
+        # First apply distortion
+        u_dist, v_dist = apply_sip_distortion(u, v, mock_sip_coeffs, device)
+
+        # Now apply iterative inverse
+        u_corr, v_corr = iterative_inverse_sip(
+            u_dist.cpu().numpy(), v_dist.cpu().numpy(), mock_sip_coeffs, device, max_iter=10, tol=1e-8
         )
 
         # Should get back close to the original coordinates
