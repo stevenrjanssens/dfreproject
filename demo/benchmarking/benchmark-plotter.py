@@ -49,13 +49,14 @@ def create_summary_tables(df):
 
 
 
-def plot_sip_comparison(df, output_file_prefix='sip_comparison'):
+def plot_sip_comparison(df, name, output_file_prefix='sip_comparison'):
     """Create visualizations comparing performance with and without SIP."""
     if 'SIP' not in df.columns:
         print("SIP column not found in data. Skipping SIP comparison plots.")
         return
 
-    
+    if name == 'cuda':
+        name = 'gpu'
     # 3. Line plot with SIP as groups
     plt.figure(figsize=(14, 10))
 
@@ -94,18 +95,19 @@ def plot_sip_comparison(df, output_file_prefix='sip_comparison'):
     plt.axhline(y=1, color='r', linestyle='--', alpha=0.5)
     plt.xlabel('Image Size', fontdict={'fontsize': 20, 'fontweight': 'bold'})
     plt.ylabel('Speedup Factor (dfreproject/reproject)' , fontdict={'fontsize': 20, 'fontweight': 'bold'})
-    plt.title('Speedup Factor by Image Size, Interpolation Method, and SIP Distortion', fontdict={'fontsize': 20, 'fontweight': 'bold'})
+    plt.title(f'Speedup Factor for {name.upper()}', fontdict={'fontsize': 20, 'fontweight': 'bold'})
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=14)
     plt.grid(linestyle='--', alpha=0.7)
     plt.tight_layout()
-    plt.savefig(f"{output_file_prefix}_line.png", dpi=300, bbox_inches='tight')
+    plt.savefig(f"{output_file_prefix}_line_{name}.png", dpi=300, bbox_inches='tight')
     plt.close()
     
     print(f"SIP comparison plots saved with prefix {output_file_prefix}")
 
 def main():
     # Get the CSV file from user
-    csv_file = input("Enter the path to the benchmark results CSV file: ")
+    name = 'cuda'
+    csv_file = f"./reproject_benchmark_detailed_results_{name}.csv"#input("Enter the path to the benchmark results CSV file: ")
     
     # Load the benchmark results
     df = load_benchmark_results(csv_file)
@@ -116,7 +118,7 @@ def main():
     create_summary_tables(df)
 
     # Generate SIP comparison plots if applicable
-    plot_sip_comparison(df)
+    plot_sip_comparison(df, name)
     
     print("\nVisualization complete. All plots saved to current directory.")
 

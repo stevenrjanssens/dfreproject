@@ -122,3 +122,17 @@ class TestInterpolationIntegration:
 
         # Vertical line should have higher values than horizontal after rotation
         assert np.mean(vertical_line_values) > np.mean(horizontal_line_values)
+from dfreproject.reproject import validate_interpolation_order
+class TestValidateInterpolationOrder:
+
+    def test_valid_orders(self):
+        assert validate_interpolation_order('nearest') == 'nearest'
+        assert validate_interpolation_order('bilinear') == 'bilinear'
+        assert validate_interpolation_order('bicubic') == 'bicubic'
+
+    def test_alias_order(self):
+        assert validate_interpolation_order('nearest-neighbors') == 'nearest'
+
+    def test_invalid_order_raises(self):
+        with pytest.raises(ValueError, match="order must be one of:"):
+            validate_interpolation_order('cubic')

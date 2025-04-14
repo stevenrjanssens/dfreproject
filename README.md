@@ -4,7 +4,7 @@ A high-performance Python package for reprojecting astronomical images between d
 
 [![Documentation Status](https://readthedocs.org/projects/dfreproject/badge/?version=latest)](https://dfreproject.readthedocs.io/en/latest/?badge=latest)
 [![Tests](https://github.com/DragonflyTelescope/dfreproject/actions/workflows/tests.yml/badge.svg)](https://github.com/DragonflyTelescope/dfreproject/actions/workflows/tests.yml)
-[![codecov](https://codecov.io/gh/DragonflyTelescope/dfreproject/branch/main/graph/badge.svg)](https://codecov.io/gh/DragonflyTelescope/dfreproject)
+[![codecov](https://codecov.io/gh/DragonflyTelescope/dfreproject/graph/badge.svg?token=409E407TN5)](https://codecov.io/gh/DragonflyTelescope/dfreproject)
 [![DOI](https://zenodo.org/badge/936088731.svg)](https://doi.org/10.5281/zenodo.15170605)
 
 
