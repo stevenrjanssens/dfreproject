@@ -29,6 +29,7 @@ extensions = [
     "sphinx.ext.intersphinx",
     "autoapi.extension",
     "nbsphinx",
+    'sphinx_copybutton',
 ]
 nbsphinx_execute = "auto"  # Execute notebooks automatically
 nbsphinx_allow_errors = False  # Don't build if notebooks have errors

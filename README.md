@@ -120,8 +120,12 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Citation
 
-If you use this package in your research, please cite:
-TBD
+If you use this package in your research, please cite our zenodo DOI:
+
+
+https://doi.org/10.5281/zenodo.15170605
+
+
 
 
 ## Acknowledgments
