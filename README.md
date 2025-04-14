@@ -7,10 +7,10 @@ A high-performance Python package for reprojecting astronomical images between d
 [![codecov](https://codecov.io/gh/DragonflyTelescope/dfreproject/graph/badge.svg?token=409E407TN5)](https://codecov.io/gh/DragonflyTelescope/dfreproject)
 [![DOI](https://zenodo.org/badge/936088731.svg)](https://doi.org/10.5281/zenodo.15170605)
 
-
-
-The idea behind this package was to make a stripped down version of the `reproject` package by astropy in order to reduce computational time.
+The idea behind this package was to make a stripped down version of the `reproject` package affiliated with astropy in order to reduce computational time.
 We achieve approximately 20X faster computations with this package using the GPU and 10X using the CPU for images taken by the Dragonfly Telephoto Array. Take a look at the demos for an example.
+We note that the only projection we currently support is the Tangential Gnomonic projection which is the most popular in optical astronomy. 
+If you have need for this package to work with another projection geometry, please open a GitHub ticket.
 
 ## Features
 
@@ -87,7 +87,8 @@ This comes with the caveat that the flux calculation most closely mimics that to
 A collection of example notebooks and scripts is available in the `demos` folder to help you get started:
 
 - `reprojection-comparison.ipynb` - Simple example of reprojecting between two WCS frames and comparing the result of our implementation with the `reproject` package.
-- `Coordinate-Comparison.ipynb' - A step-by-step walkthrough of our coordinate transformations with a comparison to `astropy.wcs`.
+- `reprojection-comparison-mini.ipynb` - Example demonstrating the differences between `dfreproject` and `reproject` using different interpolation schema.
+- `Coordinate-Comparison.ipynb` - A step-by-step walkthrough of our coordinate transformations with a comparison to `astropy.wcs`.
 
 To run the demos:
 

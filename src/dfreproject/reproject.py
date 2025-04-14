@@ -19,7 +19,27 @@ logger = logging.getLogger(__name__)
 EPSILON = 1e-10
 VALID_ORDERS = ['bicubic', 'bilinear', 'nearest', 'nearest-neighbors']
 
-def validate_interpolation_order(order):
+def validate_interpolation_order(order: str) -> str:
+    """
+    Function to validate the requested interpolation order.
+
+    The order must be one of the following: {valid_orders}
+
+    Parameters
+    ----------
+    order : str
+        Interpolation order to validate.
+
+    Returns
+    -------
+    str
+        Validated interpolation order.
+
+    Raises
+    ------
+    ValueError
+        When the provided order is not one of the valid interpolation orders.
+    """
     if order not in VALID_ORDERS:
         raise ValueError(f"order must be one of: {', '.join(VALID_ORDERS)}")
     elif order == 'nearest-neighbors':
@@ -28,13 +48,39 @@ def validate_interpolation_order(order):
         return order
 
 # Helper functions for trigonometric calculations
-def atan2d(y, x):
-    """PyTorch implementation of WCSLib's atan2d function"""
+def atan2d(y: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
+    """
+    PyTorch implementation of WCSLib's atan2d function
+
+    Parameters
+    ----------
+    y : torch.Tensor
+        y coordinate(s)
+    x : torch.Tensor
+        x coordinate(s)
+
+    Returns
+    -------
+    torch.Tensor
+        atan2d(y, x) in degrees
+    """
     return torch.rad2deg(torch.atan2(y, x))
 
 
-def sincosd(angle_deg):
-    """PyTorch implementation of WCSLib's sincosd function"""
+def sincosd(angle_deg: torch.Tensor) -> torch.Tensor:
+    """
+    PyTorch implementation of WCSLib's sincosd function
+
+    Parameters
+    ----------
+    angle_deg : torch.Tensor
+        angle in degrees
+
+    Returns
+    -------
+    tuple(torch.Tensor, torch.Tensor)
+        sin(angle) in degrees, cos(angle) in degrees
+    """
     angle_rad = torch.deg2rad(angle_deg)
     return torch.sin(angle_rad), torch.cos(angle_rad)
 
@@ -42,7 +88,18 @@ def sincosd(angle_deg):
 def interpolate_image(
     source_image: torch.Tensor, grid: torch.Tensor, interpolation_mode: str
 ) -> torch.Tensor:
-    """JIT-compiled image interpolation using grid_sample"""
+    """
+    JIT-compiled image interpolation using grid_sample
+
+    Parameters
+    ----------
+    source_image : torch.Tensor
+        Source image to interpolate
+    grid : torch.Tensor
+        Grid on which to interpolate
+    interpolation_mode: str
+        Interpolation mode to use
+    """
     return torch.nn.functional.grid_sample(
         source_image,
         grid,
@@ -191,6 +248,11 @@ class Reproject:
         ----------
         source_hdus : List[PrimaryHDU]
             List of HDUs containing the data and the header information for the source image
+
+        Returns
+        -------
+        List[dict]
+            List of dictionaries containing the WCS parameters extracted from each HDU.
         """
         return [self._extract_wcs_params(WCS(hdu.header)) for hdu in source_hdus]
 
