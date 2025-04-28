@@ -61,9 +61,8 @@ Compared to common alternatives, `dfreproject`'s routines result in speedups of 
 Several packages already exist for calculating and applying the reprojection of a source image onto a target plane, such as 
 `reproject` [@robitaille_reproject_2020] or `astroalign` [@beroiz_astroalign_2020]. These packages excel at easy-to-use, general-purpose astronomical image reprojection, but they function solely on CPUs and can be computational bottlenecks in some data reduction pipelines. The `dfreproject` package harnesses GPUs (using `PyTorch` [@paszke_pytorch_2019] as its computational backbone) to improve computational efficiency. The package has minimal reliance on pre-existing WCS packages such as those found in `astropy` or `WCSLIB` [@astropy_collaboration_astropy_2013; @astropy_collaboration_astropy_2018; @astropy_collaboration_astropy_2022], with such packages being used only for convenience in non-computationally expensive steps (such as using `astropy.wcs` to read the header information from the input fits files). 
 
-`dfreproject`'s primary purpose is to reproject observations taken by the new version of the Dragonfly Telephoto Array, which will be known as MOTHRA (Massive Optical Telephoto H-alpha suRvey Array). 
-MOTHRA will contain 1100 individual lenses, all simultaneously taking exposures with a cadence of a few minutes. 
-The volume of data obtained will be large, and it is paramount that the processing pipeline incorporates fast and accurate reprojection methods.
+`dfreproject`'s primary purpose is to reproject observations taken by a new version of the Dragonfly Telephoto Array that is currently under construction in Chile.
+The volume of data obtained with this telescope will be large, with >1000 exposures obtained simultaneously, and it is paramount that the processing pipeline incorporates fast and accurate reprojection methods.
 As shown below, by leveraging `PyTorch` for vectorization and parallelization via the GPU,
 `dfreproject` achieves a considerable speedup (up to nearly 20X) over standard methods.
 
