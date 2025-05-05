@@ -237,4 +237,5 @@ All code can be found in the `demo` directory.
 We acknowledge the Dragonfly FRO and particularly thank Lisa Sloan for her project management skills.
 
 We use the cmcrameri scientific color maps in our demos [@crameri_scientific_2023].
+
 # References
