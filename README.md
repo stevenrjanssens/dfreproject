@@ -6,6 +6,7 @@ A high-performance Python package for reprojecting astronomical images between d
 [![Tests](https://github.com/DragonflyTelescope/dfreproject/actions/workflows/tests.yml/badge.svg)](https://github.com/DragonflyTelescope/dfreproject/actions/workflows/tests.yml)
 [![codecov](https://codecov.io/gh/DragonflyTelescope/dfreproject/graph/badge.svg?token=409E407TN5)](https://codecov.io/gh/DragonflyTelescope/dfreproject)
 [![DOI](https://zenodo.org/badge/936088731.svg)](https://doi.org/10.5281/zenodo.15170605)
+ [![status](https://joss.theoj.org/papers/7f22d1073d87a3e78820f37cf7d726f6/status.svg)](https://joss.theoj.org/papers/7f22d1073d87a3e78820f37cf7d726f6)
 
 The idea behind this package was to make a stripped down version of the `reproject` package affiliated with astropy in order to reduce computational time.
 We achieve approximately 20X faster computations with this package using the GPU and 10X using the CPU for images taken by the Dragonfly Telephoto Array. Take a look at the demos for an example.
