@@ -47,7 +47,7 @@ bibliography: dfreproject.bib
 
 ---
 
-# 1. Summary
+# Summary
 Deep astronomical images are often constructed by digitially stacking many individual sub-exposures. Each sub-exposure is expected to show small differences in the positions of stars and other objects in the field, due to the movement of the celestial bodies, changes/imperfections in the opto-mechanical imaging train, and other factors.
 To maximize image quality, one must ensure that each sub-exposure is aligned to a common frame of reference prior to stacking. This is done by reprojecting each exposure onto a common target grid defined using a World Coordinate System (WCS) that is defined by mapping the known angular positions of reference objects to their observed spatial positions on each image. The transformations needed to reproject images involve complicated trigonometric expressions which can be slow to compute, so reprojection can be a major bottleneck in image processing pipelines.
 
@@ -56,7 +56,7 @@ pixel-by-pixel shifts from the source to the target plane. The package also prov
 This module follows the FITS and SIP formats laid out in the following papers: @greisen_representations_2002, @calabretta_representations_2002, and @shupe_sip_2005.
 Compared to common alternatives, `dfreproject`'s routines result in speedups of up to 20X when run on a GPU and 10X when run on a CPU.
 
-# 2. Statement of need
+# Statement of need
 
 Several packages already exist for calculating and applying the reprojection of a source image onto a target plane, such as 
 `reproject` [@robitaille_reproject_2020] or `astroalign` [@beroiz_astroalign_2020]. These packages excel at easy-to-use, general-purpose astronomical image reprojection, but they function solely on CPUs and can be computational bottlenecks in some data reduction pipelines. The `dfreproject` package harnesses GPUs (using `PyTorch` [@paszke_pytorch_2019] as its computational backbone) to improve computational efficiency. The package has minimal reliance on pre-existing WCS packages such as those found in `astropy` or `WCSLIB` [@astropy_collaboration_astropy_2013; @astropy_collaboration_astropy_2018; @astropy_collaboration_astropy_2022], with such packages being used only for convenience in non-computationally expensive steps (such as using `astropy.wcs` to read the header information from the input fits files). 
@@ -81,8 +81,7 @@ reprojected = calculate_reprojection(
 The `target_wcs` argument can be passed as a header similar to `reproject.` Additionally, if `shape_out` is not provided, the shape will be the same as the input.
 
 
-# 3. Methods
-## 3.1 Overview
+# Methods
 We must perform three intermediate calculations to reproject an image onto a new coordinate plane. 
 To do this, we use the target and source WCS. 
 
@@ -125,81 +124,8 @@ The steps are as follows:
 In the final interpolation step, we include local flux conservation by simultaneously projecting an identity tensor called the footprint.
 The final reprojected frame is normalized by this footprint.
 
-## 3.2 Coordinate Transformation
-In this section, we describe the coordinate transformation using the Gnomonic projection. 
-Please note that we include an additional shift of 1 pixel to handle Python being 0-based.
-We will be using the following definitions for values: 
-
-$x,y$ - pixel values
-
-$\mathrm{crpix}_1, \mathrm{crpix}_2$ - center pixels as defined in WCS
-
-
-$\mathrm{dec}_0, \mathrm{ra}_0$ - Central Declination and Right Ascension as defined in the WCS.
-
-
-All trigonometric functions require the values to be in radians.
-
-### 3.2.1 To celestial coordinates
-For these calculations, we use the WCS information for the target plane.
-
-$$u = x - (\mathrm{crpix}_1 - 1) $$
-$$v = y - (\mathrm{crpix}_2 -1) $$
-
-$$u = u - \mathrm{SIP\_A}(u, v)$$
-$$v = v - \mathrm{SIP\_B}(u,v)$$
-
-$$
-\begin{bmatrix}
-u' \\
-v'
-\end{bmatrix}
- = \mathrm{CD}
-\begin{bmatrix}
-u \\
-v
-\end{bmatrix}
-$$
-$$r = \sqrt{u'^2 + v'^2}$$
-$$r_0 = \frac{180}{\pi}$$
-$$\phi = \mathrm{atan}^2(-u', v')$$
-$$\theta = \mathrm{atan}^2(r_0, r) $$
-$$\mathrm{dec} = \sin^{-1}\Big( \sin(\theta)\sin(dec_0) + \cos(\theta)\cos(dec_0)\cos(\phi) \Big) $$
-$$\mathrm{ra} = \mathrm{ra}_0 + \mathrm{atan}^2\Big( -\cos(\theta)\sin(\phi), \sin(\theta)\cos(dec_0)-\cos(\theta)\sin(dec_0)\cos(\phi) \Big) $$
-
-
-### 3.2.2 To source coordinates
-For these calculations, we use the WCS information for the source plane.
-
-$$\Delta \mathrm{ra} = \mathrm{ra} - \mathrm{ra}_0$$
-$$\phi = \mathrm{atan}^2\Big(-\cos(\mathrm{dec})\sin(\Delta \mathrm{ra}), \sin(\mathrm{dec})\cos(\mathrm{dec}_0)-\cos(\mathrm{dec})\sin(\mathrm{dec}_0)\cos(\Delta \mathrm{ra}) \Big) $$
-$$\theta = \sin^{-1}\Big( \sin(\mathrm{dec})\sin(\mathrm{dec}_0) + \cos(\mathrm{dec})\cos(\mathrm{dec}_0)\cos(\Delta \mathrm{ra}) \Big) $$
-$$r = r_0\frac{\cos(\theta)}{\sin(\theta)}$$
-$$u' = -r\sin(\phi) $$
-$$v' = r\cos(\phi)$$
-
-
-
-$$
-\begin{bmatrix}
-u \\
-v
-\end{bmatrix}
- = \mathrm{CD\_INV}
-\begin{bmatrix}
-u' \\
-v'
-\end{bmatrix}
-$$
-
-$$u = u - \mathrm{SIP\_INV\_A}(u, v)$$
-$$v = v - \mathrm{SIP\_INV\_B}(u, v)$$
-
-$$x = u + (\mathrm{crpix}_1 - 1)$$
-$$y = v + (\mathrm{crpix}_2 - 1)$$
-
-# 4. Results
-## 4.1 Demo
+# Results
+## Demo
 We created two small (50x50) FITS files for this demonstration with a pixel offset of 0.5 pixels and a 0.005 degree offset in the heeader.
 In \autoref{fig:demo} from left to right, we show the original image, the `dfreproject` solution, the `reproject` solution, and the relative error between the two.
 We define the relative error as $100 * \frac{\mathrm{dfreproject\_solution} - \mathrm{reproject\_solution}}{\mathrm{reproject\_solution}}$.
@@ -210,7 +136,7 @@ There are slight differences in the solutions at the locations of the Gaussians 
 ![\label{fig:demo}](demo/comparison.png)
 
 
-## 4.2 Speed Comparison
+## Speed Comparison
 To compare the execution times, we created a benchmarking script (which can be found in the demos/benchmarking directory under `benchmark-script.py`; the figures are constructed with `benchmark-plotter.py`).
 This test is run between `dfreproject` and `reproject`.
 We benchmark the three interpolation schemes with and without SIP distortion for images sized 256x256 to 4000x6000 (this approximately matches the size of Dragonfly images).
