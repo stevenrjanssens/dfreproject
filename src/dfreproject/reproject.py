@@ -598,7 +598,11 @@ class Reproject:
 
 
 def calculate_reprojection(
-    source_hdus: Union[PrimaryHDU, List[PrimaryHDU]],
+    source_hdus: Union[
+        PrimaryHDU,
+        Tuple[np.ndarray, Union[WCS, Header]],
+        List[Union[PrimaryHDU, Tuple[np.ndarray, Union[WCS, Header]]]]
+    ],
     target_wcs: Union[WCS, Header],
     shape_out: Optional[Tuple[int, int]] = None,
     order: str = "nearest",
@@ -615,9 +619,14 @@ def calculate_reprojection(
 
     Parameters
     ----------
-    source_hdus : Union[PrimaryHDU, List[PrimaryHDU]]
+    source_hdus : Union[
+        PrimaryHDU,
+        Tuple[np.ndarray, Union[WCS, Header]],
+        List[Union[PrimaryHDU, Tuple[np.ndarray, Union[WCS, Header]]]]
+    ]
         The source image HDU list containing the image data to be reprojected and
-        its associated WCS information in the header.
+        its associated WCS information in the header. The user can also pass a single instance or a tuple
+        of the following form: (source_data, source_wcs).
 
     target_wcs : Union[WCS, Header]
         WCS information fopr the target. If a Header is passed it will be transformed to WCS.
@@ -668,10 +677,20 @@ def calculate_reprojection(
     >>> target_wcs = WCS(target_hdu.header)
     >>>
     >>> # Perform dfreproject with bilinear interpolation
+    >>> # Example 1: Using PrimaryHDU
     >>> reprojected = calculate_reprojection(
     ...     source_hdus=source_hdu,
     ...     target_wcs=target_wcs,
     ...     shape_out=target_hdu[0].data.shape,
+    ...     order='bilinear'
+    ... )
+    >>> # Example 2: Using (data, WCS) tuple
+    >>> source_data = source_hdu.data
+    >>> source_wcs = WCS(source_hdu.header)
+    >>> reprojected = calculate_reprojection(
+    ...     source_hdus=(source_data, source_wcs),
+    ...     target_wcs=target_wcs,
+    ...     shape_out=target_hdu.data.shape,
     ...     order='bilinear'
     ... )
     >>> # By default the resulting tensor is thrown to a numpy array
@@ -679,9 +698,28 @@ def calculate_reprojection(
     >>> output_hdu = fits.PrimaryHDU(data=reprojected, header=target_hdu.header)
     >>> output_hdu.writeto('reprojected_image.fits', overwrite=True)
     """
-    # Convert single HDU to list if not already a list
-    if not isinstance(source_hdus, list):
-        source_hdus = [source_hdus]
+
+    def normalize_to_hdu(item):
+        if isinstance(item, PrimaryHDU):
+            return item
+        elif isinstance(item, tuple) and len(item) == 2:
+            data, wcs_or_header = item
+            if isinstance(wcs_or_header, Header):
+                header = wcs_or_header
+            elif isinstance(wcs_or_header, WCS):
+                header = wcs_or_header.to_header()
+            else:
+                raise TypeError("Expected WCS or Header in tuple.")
+            return PrimaryHDU(data=data, header=header)
+        else:
+            raise TypeError("Each item must be a PrimaryHDU or a (data, wcs/header) tuple.")
+    # Normalize source_input to a list of HDUs
+    if isinstance(source_hdus, list):
+        source_hdus = [normalize_to_hdu(item) for item in source_hdus]
+    else:
+        source_hdus = [normalize_to_hdu(source_hdus)]
+
+    # Convert Header to WCS if needed
     if isinstance(target_wcs, Header):
         target_wcs = WCS(target_wcs)
     if not shape_out:
