@@ -607,7 +607,8 @@ def calculate_reprojection(
     shape_out: Optional[Tuple[int, int]] = None,
     order: str = "nearest",
     device: str = None,
-    num_threads: int = None
+    num_threads: int = None,
+    requires_grad: bool = False
 ):
     """
     Reproject an astronomical image from a source WCS to a target WCS.
@@ -731,6 +732,12 @@ def calculate_reprojection(
                              num_threads=num_threads)
     order = validate_interpolation_order(order)
     input_type = source_hdus[0].data[0][0].dtype
-    result = reprojection.interpolate_source_image(interpolation_mode=order).cpu().numpy().astype(input_type)
+
+    if(requires_grad):
+        result = reprojection.interpolate_source_image(interpolation_mode=order).cpu()
+    else:
+        result = reprojection.interpolate_source_image(interpolation_mode=order).cpu().numpy().astype(input_type)
+
+
     torch.cuda.empty_cache()
     return result
