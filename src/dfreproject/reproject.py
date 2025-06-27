@@ -5,6 +5,7 @@ import numpy as np
 import torch
 from astropy.io.fits import PrimaryHDU, Header
 from astropy.wcs import WCS
+from .tensorhdu import TensorHDU
 
 from .sip import (
     apply_inverse_sip_distortion,
@@ -116,7 +117,8 @@ class Reproject:
         target_wcs: WCS,
         shape_out: Tuple[int, int],
         device: str = None,
-        num_threads: int = None
+        num_threads: int = None,
+        requires_grad: bool = False
     ):
         """
         Initialize a dfreproject operation between source and target image frames.
@@ -167,6 +169,9 @@ class Reproject:
         if num_threads:
             torch.set_num_threads(num_threads)
 
+        self.requires_grad = requires_grad
+
+
         self.batch_source_images = self._prepare_source_images(source_hdus)
 
         # Initialize the WCS objects
@@ -175,6 +180,7 @@ class Reproject:
 
         # Define target grid
         self.target_grid = self._create_batch_target_grid(shape_out)
+
 
     def _prepare_source_images(self, source_hdus: List[PrimaryHDU]) -> torch.Tensor:
         """
@@ -192,10 +198,14 @@ class Reproject:
             Stack of source image tensors
         """
         try:
-            source_images = [
-                torch.tensor(hdu.data, dtype=torch.float64, device=self.device)
-                for hdu in source_hdus
-            ]
+            source_images = []
+            for hdu in source_hdus:
+                if self.requires_grad and isinstance(hdu, TensorHDU):
+                    img = hdu.tensor.to(self.device)
+                else:
+                    img = torch.tensor(hdu.data, dtype=torch.float64, device=self.device)
+                source_images.append(img)
+            
         except ValueError:  # In case there is a byte order error
             source_images = [
                 torch.tensor(
@@ -703,6 +713,11 @@ def calculate_reprojection(
     def normalize_to_hdu(item):
         if isinstance(item, PrimaryHDU):
             return item
+        elif isinstance(item, TensorHDU):
+            if requires_grad:
+                return PrimaryHDU(data=item.data, header=item.header)
+            else:
+                return item
         elif isinstance(item, tuple) and len(item) == 2:
             data, wcs_or_header = item
             if isinstance(wcs_or_header, Header):
@@ -711,7 +726,11 @@ def calculate_reprojection(
                 header = wcs_or_header.to_header()
             else:
                 raise TypeError("Expected WCS or Header in tuple.")
-            return PrimaryHDU(data=data, header=header)
+            if requires_grad:
+                return TensorHDU(data=data, header=header)
+            else:
+                return PrimaryHDU(data=data, header=header)
+            
         else:
             raise TypeError("Each item must be a PrimaryHDU or a (data, wcs/header) tuple.")
     # Normalize source_input to a list of HDUs
@@ -729,7 +748,8 @@ def calculate_reprojection(
                              target_wcs=target_wcs,
                              shape_out=shape_out,
                              device=device,
-                             num_threads=num_threads)
+                             num_threads=num_threads,
+                             requires_grad=requires_grad)
     order = validate_interpolation_order(order)
     input_type = source_hdus[0].data[0][0].dtype
 

@@ -66,15 +66,12 @@ class TensorHDU(PrimaryHDU):
         )
 
     @property
-    def tensor(self):
+    def tensor(self) -> torch.Tensor:
         """
-        Returns the image data as a torch.Tensor (for external use).
+        Returns the image data as a torch.Tensor.
         """
-        if self.data is None:
-            return None
-        if isinstance(self.data, np.ndarray):
-            return torch.from_numpy(self.data)
-        return torch.tensor(self.data)
+        
+        return self.__dict__.get("tensor", None)
 
     
     @tensor.setter
