@@ -24,7 +24,9 @@ If you have need for this package to work with another projection geometry, plea
 ## Installation
 
 ### Using PyPi
+
 If you want to install using PyPi (which is certainly the easiest way), you can simply run 
+
 ```bash
 pip install dfreproject
 ```
@@ -83,6 +85,39 @@ The arguments for `calculate_reprojection` are the same as for the standard repr
 Therefore, it can be directly swapped for one of these by simply importing it with `from dfreproject import calculate_reprojection` and then using `calculate_reproject` instead of `reproject_interp`. 
 This comes with the caveat that the flux calculation most closely mimics that to `reproject_interp`.
 
+
+
+In another scenario, it may be more adventageous to use an array of data and a WCS object that have already been loaded into memory (i.e. not in a file/hdu object). In that case, follow this example:
+
+```python
+from astropy.io import fits
+from astropy.wcs import WCS
+from reprojection import calculate_reprojection
+
+# Load source and target images
+source_hdu = fits.open('source_image.fits')[0]
+source_data = source_hdu.data
+source_wcs = WCS(source_hdu.header)
+target_hdu = fits.open('target_grid.fits')[0]
+target_wcs = WCS(target_hdu.header)
+# Perform dfreproject with bilinear interpolation
+reprojected = calculate_reprojection(
+    source_hdus=(source_data, source_WCS),
+    target_wcs=target_wcs,
+    shape_out=target_hdu.data.shape,
+    order='bilinear'
+)
+
+# Save as FITS
+output_hdu = fits.PrimaryHDU(data=reprojected)
+output_hdu.header.update(target_wcs.to_header())
+output_hdu.writeto('reprojected_image.fits', overwrite=True)
+```
+
+The `calculate_reprojection`` function will internally handle all the translation so that   the inputs are properly handled.
+
+
+
 ## Demos and Examples
 
 A collection of example notebooks and scripts is available in the `demos` folder to help you get started:
@@ -100,9 +135,10 @@ jupyter notebook
 
 ## Documentation
 
-Comprehensive documentation is available at [https://dfreproject.readthedocs.io/](https://reprojection.readthedocs.io/)
+Comprehensive documentation is available at [https://dfreproject.readthedocs.io/](https://dfreproject.readthedocs.io/)
 
 The documentation includes:
+
 - API reference
 - Mathematical details of the reprojection process
 - Tutorials and examples
@@ -118,16 +154,11 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-
 ## Citation
 
 If you use this package in your research, please cite our zenodo DOI:
 
-
 https://doi.org/10.5281/zenodo.15170605
-
-
-
 
 ## Acknowledgments
 
