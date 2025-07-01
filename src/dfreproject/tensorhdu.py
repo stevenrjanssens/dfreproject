@@ -80,11 +80,12 @@ class TensorHDU(PrimaryHDU):
         if data is not None and not isinstance(data, torch.Tensor):
             try:
                 if isinstance(data, np.ndarray):
-                    data = torch.from_numpy(data)
+                    data = torch.tensor(data, requires_grad = True)
+                    print("Converted numpy array to torch tensor with requires_grad=True.")
                 else:
-                    data = torch.tensor(data)
+                    data = torch.tensor(data, requires_grad = True)
             except Exception:
-                data = torch.tensor(data)
+                data = torch.tensor(data, requires_grad = True)
 
         self.__dict__["tensor"] = data
 

@@ -705,7 +705,10 @@ def calculate_reprojection(
 
     def normalize_to_hdu(item):
         if isinstance(item, PrimaryHDU):
-            return item
+            if requires_grad and not isinstance(item, TensorHDU):
+                return TensorHDU(data=item.data, header=item.header)
+            else:
+                return item
         elif isinstance(item, tuple) and len(item) == 2:
             data, wcs_or_header = item
             if isinstance(wcs_or_header, Header):
@@ -720,7 +723,7 @@ def calculate_reprojection(
                 return PrimaryHDU(data=data, header=header)
             
         else:
-            raise TypeError("Each item must be a PrimaryHDU or a (data, wcs/header) tuple.")
+            raise TypeError("Each item must be a PrimaryHDU, TensorHDU, or a (data, wcs/header) tuple.")
     # Normalize source_input to a list of HDUs
     if isinstance(source_hdus, list):
         source_hdus = [normalize_to_hdu(item) for item in source_hdus]
