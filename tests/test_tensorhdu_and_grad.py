@@ -11,6 +11,9 @@ class TestTensorHDUAndGrad:
         # Test that TensorHDU exposes .tensor as a torch.Tensor and .data as a numpy array,
         # and that their values match for a numpy input.
         source_hdu = fits.open(source_fits_file)[0]
+        
+        if hasattr(source_hdu, 'data') and source_hdu.data is not None:
+            source_hdu.data = np.asarray(source_hdu.data, dtype=np.float64).copy()
 
         from dfreproject.tensorhdu import TensorHDU
 
