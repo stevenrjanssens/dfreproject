@@ -86,6 +86,11 @@ class TensorHDU(PrimaryHDU):
                     data = torch.tensor(data, requires_grad = True)
             except Exception:
                 data = torch.tensor(data, requires_grad = True)
+        elif isinstance(data, torch.Tensor):
+            if data.dtype != torch.float64:
+                data = data.to(torch.float64)
+
+                
 
         self.__dict__["tensor"] = data
 

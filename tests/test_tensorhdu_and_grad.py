@@ -30,7 +30,8 @@ class TestTensorHDUAndGrad:
         from dfreproject.tensorhdu import TensorHDU
 
         arr = fits.getdata(source_fits_file)
-        t = torch.tensor(arr, dtype=torch.float32)
+        arr = np.asarray(arr, dtype=np.float64).copy()
+        t = torch.tensor(arr, dtype=torch.float64)
 
         hdu = TensorHDU(data=t, header=fits.getheader(source_fits_file))
 
@@ -47,7 +48,8 @@ class TestTensorHDUAndGrad:
         from dfreproject.reproject import calculate_reprojection
 
         arr = fits.getdata(source_fits_file)
-        t = torch.tensor(arr, dtype=torch.float32, requires_grad=True, device=device)
+        arr = np.asarray(arr, dtype=np.float64).copy()
+        t = torch.tensor(arr, dtype=torch.float64, requires_grad=True, device=device)
 
         source_header = fits.getheader(source_fits_file)
         hdu = TensorHDU(data=t, header=source_header)
@@ -74,6 +76,7 @@ class TestTensorHDUAndGrad:
         # Test that calculate_reprojection works and is differentiable when source_hdus is (numpy array, header)
         from dfreproject.reproject import calculate_reprojection
         arr = fits.getdata(source_fits_file)
+        arr = np.asarray(arr, dtype=np.float64).copy()
      
 
         header = fits.getheader(source_fits_file)
@@ -98,8 +101,9 @@ class TestTensorHDUAndGrad:
         # Test that calculate_reprojection works and is differentiable when source_hdus is (tensor, header)
         from dfreproject.reproject import calculate_reprojection
         arr = fits.getdata(source_fits_file)
+        arr = np.asarray(arr, dtype=np.float64).copy()
        
-        t = torch.tensor(arr, dtype=torch.float32, requires_grad=True, device=device)
+        t = torch.tensor(arr, dtype=torch.float64, requires_grad=True, device=device)
         header = fits.getheader(source_fits_file)
         target_header = fits.getheader(target_fits_file)
         target_wcs = WCS(target_header)
@@ -125,6 +129,8 @@ class TestTensorHDUAndGrad:
         # Test that calculate_reprojection works and is differentiable when source_hdus is a PrimaryHDU
         from dfreproject.reproject import calculate_reprojection
         hdu = fits.open(source_fits_file)[0]
+        if hasattr(hdu, 'data') and hdu.data is not None:
+            hdu.data = np.asarray(hdu.data, dtype=np.float64).copy()
      
         target_header = fits.getheader(target_fits_file)
         target_wcs = WCS(target_header)
