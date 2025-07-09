@@ -16,7 +16,7 @@ class TensorHDU(PrimaryHDU):
         scale_back=None,
     ):
         """
-        Construct a pytorch tensor HDU.
+        Construct a pytorch tensor HDU (Child class of PrimaryHDU with added tensor property).
 
         Parameters
         ----------
