@@ -20,7 +20,7 @@ class TensorHDU(PrimaryHDU):
 
         Parameters
         ----------
-        data : array or ``astropy.io.fits.hdu.base.DELAYED``, optional
+        data : Pytorch tensor, array or ``astropy.io.fits.hdu.base.DELAYED``, optional
             The data in the HDU.
 
         header : `~astropy.io.fits.Header`, optional
