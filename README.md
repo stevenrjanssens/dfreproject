@@ -87,7 +87,7 @@ This comes with the caveat that the flux calculation most closely mimics that to
 
 
 
-In another scenario, it may be more adventageous to use an array of data and a WCS object that have already been loaded into memory (i.e. not in a file/hdu object). In that case, follow this example:
+In another scenario, it may be more adventageous to use an array of data and the header object that have already been loaded into memory (i.e. not in a file/hdu object). In that case, follow this example:
 
 ```python
 from astropy.io import fits
@@ -97,12 +97,11 @@ from reprojection import calculate_reprojection
 # Load source and target images
 source_hdu = fits.open('source_image.fits')[0]
 source_data = source_hdu.data
-source_wcs = WCS(source_hdu.header)
 target_hdu = fits.open('target_grid.fits')[0]
 target_wcs = WCS(target_hdu.header)
 # Perform dfreproject with bilinear interpolation
 reprojected = calculate_reprojection(
-    source_hdus=(source_data, source_WCS),
+    source_hdus=(source_data, source_hdu.header),
     target_wcs=target_wcs,
     shape_out=target_hdu.data.shape,
     order='bilinear'

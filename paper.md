@@ -74,7 +74,9 @@ reprojected = calculate_reprojection(
     source_hdus=source_hdu,
     target_wcs=target_wcs,
     shape_out=target_hdu.data.shape,
-    order='bilinear'
+    order='bilinear',
+   device='cpu',
+   n_threads=2
 )
 ```
 
@@ -126,12 +128,12 @@ The final reprojected frame is normalized by this footprint.
 
 # Results
 ## Demo
-We created two small (50x50) FITS files for this demonstration with a pixel offset of 0.5 pixels and a 0.005 degree offset in the heeader.
+We created two small (50x50) FITS files for this demonstration with a pixel offset of 0.5 pixels and a 0.005 degree offset in the header.
 In \autoref{fig:demo} from left to right, we show the original image, the `dfreproject` solution, the `reproject` solution, and the relative error between the two.
 We define the relative error as $100 * \frac{\mathrm{dfreproject\_solution} - \mathrm{reproject\_solution}}{\mathrm{reproject\_solution}}$.
 For both solutions, we use a bilinear interpolation scheme. In the noisy regions of the image, the differences in the reprojections is pure noise. 
 There are slight differences in the solutions at the locations of the Gaussians which is attributable to small differences in the normalization. 
-
+In this demo, we used the gpu by setting `device='gpu'` in the argument of `calculate_reprojection()`.
 
 ![\label{fig:demo}](demo/comparison.png)
 
@@ -149,7 +151,8 @@ We benchmark the three interpolation schemes with and without SIP distortion for
 As evidenced by this figure, `dfreproject` has a significant speed advantage over `reproject` for larger images regardless of the type of interpolation scheme. 
 The speedup is most pronounced in the case where SIP distortions are included.
 
-In \autoref{fig:cpu-comparison}, we display the same results except we used a CPU (Intel® Core™ i9-14900HX).
+In \autoref{fig:cpu-comparison}, we display the same results except we used a CPU (Intel® Core™ i9-14900HX). 
+For this experiment, we used a single thread.
 
 
 ![\label{fig:cpu-comparison}](demo/benchmarking/sip_comparison_line_cpu.png)
