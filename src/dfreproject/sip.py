@@ -68,59 +68,47 @@ def apply_sip_distortion(
     --------
     tuple:
         (u', v') distorted coordinates
+
+
+    # Convert to tensors if needed
+
     """
     if sip_coeffs is None:
         return u, v
 
-    # Convert to tensors if needed
     if not isinstance(u, torch.Tensor):
         u = torch.tensor(u, device=device)
         v = torch.tensor(v, device=device)
 
-    # Get the SIP orders
+
     a_order = sip_coeffs["a_order"]
+    a_matrix = torch.tensor(sip_coeffs["a"], dtype=torch.float64, device=device)
+    b_matrix = torch.tensor(sip_coeffs["b"], dtype=torch.float64, device=device)
 
-    # Convert coefficient matrices to tensors
-    a_matrix = torch.tensor(sip_coeffs["a"], device=device)
-    b_matrix = torch.tensor(sip_coeffs["b"], device=device)
+    # Precompute powers of u and v
+    # Save memory by computing and using only needed powers
+    u_powers = [torch.ones_like(u)]
+    v_powers = [torch.ones_like(v)]
 
-    # Initialize correction terms
+    for n in range(1, a_order + 1):
+        u_powers.append(u_powers[-1] * u)
+        v_powers.append(v_powers[-1] * v)
+
+    # Apply polynomial distortion
     f_u = torch.zeros_like(u)
     f_v = torch.zeros_like(v)
 
-    # For array inputs, reshape to make computation easier
-    orig_shape = u.shape
-    u_flat = u.reshape(-1) if u.dim() > 0 else u.unsqueeze(0)
-    v_flat = v.reshape(-1) if v.dim() > 0 else v.unsqueeze(0)
-    f_u_flat = f_u.reshape(-1) if f_u.dim() > 0 else f_u.unsqueeze(0)
-    f_v_flat = f_v.reshape(-1) if f_v.dim() > 0 else f_v.unsqueeze(0)
-
-    # Apply the polynomial distortion
     for i in range(a_order + 1):
         for j in range(a_order + 1 - i):
             if i == 0 and j == 0:
-                continue  # Skip the 0,0 term
+                continue  # Skip the (0,0) term
 
-            # Compute u^i * v^j for all points
-            pow_term = (u_flat**i) * (v_flat**j)
+            term = u_powers[i] * v_powers[j]
+            f_u = f_u + a_matrix[i, j] * term
+            f_v = f_v + b_matrix[i, j] * term
 
-            # Apply coefficient
-            f_u_flat += a_matrix[i, j] * pow_term
-            f_v_flat += b_matrix[i, j] * pow_term
-
-    # Reshape back to original shape if needed
-    if u.dim() > 0:
-        f_u = f_u_flat.reshape(orig_shape)
-        f_v = f_v_flat.reshape(orig_shape)
-    else:
-        f_u = f_u_flat[0]
-        f_v = f_v_flat[0]
-
-    # Add the distortion terms to get the corrected coordinates
-    u_corrected = u + f_u
-    v_corrected = v + f_v
-
-    return u_corrected, v_corrected
+    # Return corrected coordinates
+    return u + f_u, v + f_v
 
 
 def apply_inverse_sip_distortion(
@@ -145,61 +133,45 @@ def apply_inverse_sip_distortion(
     """
     if sip_coeffs is None:
         return u, v
-
-    # Check if inverse coefficients are available
-    if sip_coeffs["ap_order"] == 0 or sip_coeffs["bp_order"] == 0:
-        # Use iterative method if inverse coefficients aren't available
-        return iterative_inverse_sip(u, v, sip_coeffs, device)
-
     # Convert to tensors if needed
     if not isinstance(u, torch.Tensor):
         u = torch.tensor(u, device=device)
         v = torch.tensor(v, device=device)
 
-    # Get the SIP orders
+
+        # Use iterative method if inverse SIP coefficients are not defined
+    if sip_coeffs["ap_order"] == 0 or sip_coeffs["bp_order"] == 0:
+        return iterative_inverse_sip(u, v, sip_coeffs, device)
+
+        # Ensure inputs are tensors on correct device and dtype
+    u = u.to(dtype=torch.float16, device=device)
+    v = v.to(dtype=torch.float16, device=device)
+
     ap_order = sip_coeffs["ap_order"]
 
-    # Convert coefficient matrices to tensors
-    ap_matrix = torch.tensor(sip_coeffs["ap"], device=device)
-    bp_matrix = torch.tensor(sip_coeffs["bp"], device=device)
+    ap_matrix = torch.tensor(sip_coeffs["ap"], dtype=torch.float16, device=device)
+    bp_matrix = torch.tensor(sip_coeffs["bp"], dtype=torch.float16, device=device)
+    del sip_coeffs
+    # Precompute powers of u and v to avoid repeated allocation
+    u_powers = [torch.ones_like(u)]
+    v_powers = [torch.ones_like(v)]
+    for n in range(1, ap_order + 1):
+        u_powers.append(u_powers[-1] * u)
+        v_powers.append(v_powers[-1] * v)
 
     # Initialize correction terms
     f_u = torch.zeros_like(u)
     f_v = torch.zeros_like(v)
 
-    # For array inputs, reshape to make computation easier
-    orig_shape = u.shape
-    u_flat = u.reshape(-1) if u.dim() > 0 else u.unsqueeze(0)
-    v_flat = v.reshape(-1) if v.dim() > 0 else v.unsqueeze(0)
-    f_u_flat = f_u.reshape(-1) if f_u.dim() > 0 else f_u.unsqueeze(0)
-    f_v_flat = f_v.reshape(-1) if f_v.dim() > 0 else f_v.unsqueeze(0)
-
-    # Apply the polynomial correction
     for i in range(ap_order + 1):
         for j in range(ap_order + 1 - i):
             if i == 0 and j == 0:
-                continue  # Skip the 0,0 term
-
-            # Compute u^i * v^j for all points
-            pow_term = (u_flat**i) * (v_flat**j)
-
-            # Apply coefficient
-            f_u_flat += ap_matrix[i, j] * pow_term
-            f_v_flat += bp_matrix[i, j] * pow_term
-
-    # Reshape back to original shape if needed
-    if u.dim() > 0:
-        f_u = f_u_flat.reshape(orig_shape)
-        f_v = f_v_flat.reshape(orig_shape)
-    else:
-        f_u = f_u_flat[0]
-        f_v = f_v_flat[0]
-
-    # Add the correction terms to get the undistorted coordinates
-    u_corrected = u + f_u
-    v_corrected = v + f_v
-
-    return u_corrected, v_corrected
+                continue
+            term = u_powers[i] * v_powers[j]
+            f_u = f_u + ap_matrix[i, j] * term
+            f_v = f_v + bp_matrix[i, j] * term
+    del u_powers, v_powers, ap_matrix, bp_matrix
+    return u + f_u, v + f_v
 
 
 def iterative_inverse_sip(

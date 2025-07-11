@@ -358,10 +358,10 @@ class Reproject:
         transformed = torch.bmm(
             pixel_offsets, CD_matrix.T.unsqueeze(0).expand(B, -1, -1)
         )
-
+        del pixel_offsets, CD_matrix, u, v
         x_scaled = transformed[:, :, 0].reshape(B, H, W)
         y_scaled = transformed[:, :, 1].reshape(B, H, W)
-
+        del transformed
         # Compute radial distance
         r = torch.sqrt(x_scaled**2 + y_scaled**2)
         r0 = torch.tensor(180.0 / torch.pi, device=self.device)
@@ -372,35 +372,35 @@ class Reproject:
         phi[non_zero_r] = torch.rad2deg(
             torch.atan2(-x_scaled[non_zero_r], y_scaled[non_zero_r])
         )
-
+        del x_scaled, y_scaled
         # Compute theta
-        theta = torch.rad2deg(torch.atan2(r0, r))
+        #theta = torch.rad2deg(torch.atan2(r0, r))
 
         # Convert to radians
         phi_rad = torch.deg2rad(phi)
-        theta_rad = torch.deg2rad(theta)
+        theta_rad = torch.deg2rad(torch.rad2deg(torch.atan2(r0, r)))
+        del r0, r
         ra0_rad = crval[0] * torch.pi / 180.0
         dec0_rad = crval[1] * torch.pi / 180.0
 
         # Spherical coordinate calculations
-        sin_theta = torch.sin(theta_rad)
-        cos_theta = torch.cos(theta_rad)
-        sin_phi = torch.sin(phi_rad)
-        cos_phi = torch.cos(phi_rad)
-        sin_dec0 = torch.sin(dec0_rad)
-        cos_dec0 = torch.cos(dec0_rad)
+        # sin_theta = torch.sin(theta_rad)
+        # cos_theta = torch.cos(theta_rad)
+        # sin_phi = torch.sin(phi_rad)
+        # cos_phi = torch.cos(phi_rad)
+        # sin_dec0 = torch.sin(dec0_rad)
+        # cos_dec0 = torch.cos(dec0_rad)
 
-        sin_dec = sin_theta * sin_dec0 + cos_theta * cos_dec0 * cos_phi
+        sin_dec = torch.sin(theta_rad) * torch.sin(dec0_rad) + torch.cos(theta_rad) * torch.cos(dec0_rad) * torch.cos(phi_rad)
         dec_rad = torch.arcsin(sin_dec)
-
-        y_term = cos_theta * sin_phi
-        x_term = sin_theta * cos_dec0 - cos_theta * sin_dec0 * cos_phi
-        ra_rad = ra0_rad + torch.atan2(-y_term, x_term)
-
+        #del sin_dec
+        # y_term = torch.cos(theta_rad) * torch.sin(phi_rad)
+        # x_term = torch.sin(theta_rad) * torch.cos(dec0_rad) - torch.cos(theta_rad) * torch.sin(dec0_rad) * torch.cos(phi_rad)
+        ra_rad = ra0_rad + torch.atan2(-torch.cos(theta_rad) * torch.sin(phi_rad), torch.sin(theta_rad) * torch.cos(dec0_rad) - torch.cos(theta_rad) * torch.sin(dec0_rad) * torch.cos(phi_rad))
         # Convert to degrees and normalize
         ra = torch.rad2deg(ra_rad) % 360.0
         dec = torch.rad2deg(dec_rad)
-
+        del ra_rad, dec_rad
         return ra, dec
 
     def calculate_sourceCoords(self):
@@ -438,36 +438,37 @@ class Reproject:
             # Conversion calculations
             ra_rad = torch.deg2rad(ra)
             dec_rad = torch.deg2rad(dec)
+            ra_dim = ra.dim()
+            ra_shape = ra.shape
+            del ra, dec
             ra0_rad = crval[0] * torch.pi / 180.0
             dec0_rad = crval[1] * torch.pi / 180.0
             # Convert numpy arrays to torch tensors if needed
-            if not isinstance(ra, torch.Tensor):
-                ra = torch.tensor(ra, device=self.device)
-                dec = torch.tensor(dec, device=self.device)
+            # if not isinstance(ra, torch.Tensor):
+            #     ra = torch.tensor(ra, device=self.device)
             # Step 1: Convert from world to native spherical coordinates
             # Calculate the difference in RA
-            delta_ra = ra_rad - ra0_rad
+            #delta_ra = ra_rad - ra0_rad
             # Calculate sine and cosine values
-            sin_dec = torch.sin(dec_rad)
-            cos_dec = torch.cos(dec_rad)
-            sin_dec0 = torch.sin(dec0_rad)
-            cos_dec0 = torch.cos(dec0_rad)
-            sin_delta_ra = torch.sin(delta_ra)
-            cos_delta_ra = torch.cos(delta_ra)
+
             # Calculate the native spherical coordinates using the correct sign conventions
-            y_phi = -cos_dec * sin_delta_ra  # Note the negative sign
+            y_phi = -torch.cos(dec_rad) * torch.sin(ra_rad - ra0_rad)  # Note the negative sign
             # Calculate the denominator for phi
-            x_phi = sin_dec * cos_dec0 - cos_dec * sin_dec0 * cos_delta_ra
+            x_phi = torch.sin(dec_rad) * torch.cos(dec0_rad) - torch.cos(dec_rad) * torch.sin(dec0_rad) * torch.cos(ra_rad - ra0_rad)
             # Calculate native longitude (phi)
             phi = atan2d(y_phi, x_phi)
+            del x_phi, y_phi
             # Calculate native latitude (theta)
             theta = torch.rad2deg(
-                torch.arcsin(sin_dec * sin_dec0 + cos_dec * cos_dec0 * cos_delta_ra)
+                torch.arcsin(torch.sin(dec_rad) * torch.sin(dec0_rad) + torch.cos(dec_rad) * torch.cos(dec0_rad) * torch.cos(ra_rad - ra0_rad))
             )
+            #del sin_dec, cos_dec, sin_dec0, cos_dec0, cos_delta_ra
             # Step 2: Apply the TAN projection (tans2x function from WCSLib)
             # Calculate sine and cosine of phi and theta
             sin_phi, cos_phi = sincosd(phi)
+            del phi
             sin_theta, cos_theta = sincosd(theta)
+            del theta
             # Check for singularity (when sin_theta is zero)
             eps = 1e-10
             if torch.any(torch.abs(sin_theta) < eps):
@@ -476,17 +477,21 @@ class Reproject:
             r0 = torch.tensor(180.0 / torch.pi, device=self.device)
             # Calculate the scaling factor r with correct sign
             r = r0 * cos_theta / sin_theta
+            del cos_theta, sin_theta, r0
             # Calculate intermediate world coordinates (x_scaled, y_scaled)
             # With the corrected signs based on your findings
             x_scaled = -r * sin_phi  # Note the negative sign
             y_scaled = r * cos_phi
+            del sin_phi, cos_phi
             # Step 3: Apply the inverse of the CD matrix to get pixel offsets
             # First, construct the CD matrix
             CD_matrix = pc_matrix * cdelt
+            del pc_matrix, cdelt
             # Calculate the inverse of the CD matrix
             CD_inv = torch.linalg.inv(CD_matrix)
+            del CD_matrix
             # Handle batch processing for arrays
-            if ra.dim() == 0:  # scalar inputs
+            if ra_dim == 0:  # scalar inputs
                 standard_coords = torch.tensor(
                     [x_scaled.item(), y_scaled.item()],
                     device=self.device,
@@ -495,25 +500,29 @@ class Reproject:
                 pixel_offsets = torch.matmul(CD_inv, standard_coords)
                 u = pixel_offsets[0]
                 v = pixel_offsets[1]
+                del CD_inv, pixel_offsets, standard_coords
             else:  # array inputs
                 # Reshape for batch processing if needed
-                if ra.dim() > 1:
-                    original_shape = ra.shape
+                if ra_dim > 1:
+                    original_shape = ra_shape
                     x_scaled_flat = x_scaled.reshape(-1)
                     y_scaled_flat = y_scaled.reshape(-1)
                 else:
                     x_scaled_flat = x_scaled
                     y_scaled_flat = y_scaled
                 # Stack for batch matrix multiplication
+                del x_scaled, y_scaled
                 standard_coords = torch.stack(
                     [x_scaled_flat, y_scaled_flat], dim=1
                 )  # Shape: [N, 2]
+                del x_scaled_flat, y_scaled_flat
                 # Use batch matrix multiplication
                 pixel_offsets = torch.matmul(standard_coords, CD_inv.T)  # Shape: [N, 2]
                 u = pixel_offsets[:, 0]
                 v = pixel_offsets[:, 1]
+                del CD_inv, pixel_offsets, standard_coords
                 # Reshape back to original dimensions if needed
-                if ra.dim() > 1:
+                if ra_dim > 1:
                     u = u.reshape(original_shape)
                     v = v.reshape(original_shape)
             if sip_coeffs is not None:
@@ -522,9 +531,10 @@ class Reproject:
             # Remember to add (CRPIX-1) to account for 1-based indexing in FITS/WCS
             x_pixel = u + (crpix[0] - 1)
             y_pixel = v + (crpix[1] - 1)
+            del u,v
             batch_x_pixel[b] = x_pixel
             batch_y_pixel[b] = y_pixel
-
+            del x_pixel, y_pixel
         return batch_x_pixel, batch_y_pixel
 
     def interpolate_source_image(self, interpolation_mode="bilinear") -> torch.Tensor:
@@ -580,30 +590,31 @@ class Reproject:
         x_normalized = 2.0 * (x_source / (W - 1)) - 1.0
         y_normalized = 2.0 * (y_source / (H - 1)) - 1.0
         # Create sampling grid
-        grid = torch.stack([x_normalized, y_normalized], dim=-1)
+        #grid = torch.stack([x_normalized, y_normalized], dim=-1)
         # Prepare images and grid for grid_sample
         source_images = self.batch_source_images.unsqueeze(1)  # [B, 1, H, W]
         ones = torch.ones_like(source_images)
         # Combine images with ones for footprint calculation
-        combined = torch.cat([source_images, ones], dim=1)  # [B, 2, H, W]
+        #combined = torch.cat([source_images, ones], dim=1)  # [B, 2, H, W]
         # Single grid_sample call
-        combined_result = interpolate_image(combined, grid, interpolation_mode)
+        combined_result = interpolate_image(torch.cat([source_images, ones], dim=1), torch.stack([x_normalized, y_normalized], dim=-1), interpolation_mode)
+        del source_images, ones, x_normalized, y_normalized
         # Split the results
-        resampled_image = combined_result[:, 0].squeeze()
-        resampled_footprint = combined_result[:, 1].squeeze()
+        #resampled_image = combined_result[:, 0].squeeze()
+        #resampled_footprint = combined_result[:, 1].squeeze()
         # Create output array initialized with zeros
-        result = torch.full_like(resampled_image, torch.nan)
+        result = torch.full_like(combined_result[:, 0].squeeze(), torch.nan)
         # Apply footprint correction only where footprint is significant
-        valid_pixels = resampled_footprint > EPSILON
+        valid_pixels = combined_result[:, 1].squeeze() > EPSILON
         # Apply footprint correction only where footprint is significant
         if torch.any(valid_pixels):
             # Normalize by the footprint where valid
             result[valid_pixels] = (
-                resampled_image[valid_pixels] / resampled_footprint[valid_pixels]
+                combined_result[:, 0].squeeze()[valid_pixels] / combined_result[:, 1].squeeze()[valid_pixels]
             )
         else:
             logger.warning("No valid pixels found in footprint! Using raw interpolated values")
-
+        del valid_pixels
         return result
 
 
