@@ -144,13 +144,13 @@ def apply_inverse_sip_distortion(
         return iterative_inverse_sip(u, v, sip_coeffs, device)
 
         # Ensure inputs are tensors on correct device and dtype
-    u = u.to(dtype=torch.float16, device=device)
-    v = v.to(dtype=torch.float16, device=device)
+    u = u.to(dtype=torch.float32, device=device)
+    v = v.to(dtype=torch.float32, device=device)
 
     ap_order = sip_coeffs["ap_order"]
 
-    ap_matrix = torch.tensor(sip_coeffs["ap"], dtype=torch.float16, device=device)
-    bp_matrix = torch.tensor(sip_coeffs["bp"], dtype=torch.float16, device=device)
+    ap_matrix = torch.tensor(sip_coeffs["ap"], dtype=torch.float32, device=device)
+    bp_matrix = torch.tensor(sip_coeffs["bp"], dtype=torch.float32, device=device)
     del sip_coeffs
     # Precompute powers of u and v to avoid repeated allocation
     u_powers = [torch.ones_like(u)]

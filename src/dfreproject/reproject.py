@@ -753,12 +753,12 @@ def calculate_reprojection(
                              num_threads=num_threads,
                              requires_grad=requires_grad)
     order = validate_interpolation_order(order)
-    input_type = source_hdus[0].data[0][0].dtype
+    #input_type = source_hdus[0].data[0][0].dtype
 
     if(requires_grad):
         result = reprojection.interpolate_source_image(interpolation_mode=order).cpu()
     else:
-        result = reprojection.interpolate_source_image(interpolation_mode=order).cpu().numpy().astype(input_type)
+        result = reprojection.interpolate_source_image(interpolation_mode=order).cpu().numpy().astype(np.float32)
 
 
     torch.cuda.empty_cache()
