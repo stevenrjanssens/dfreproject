@@ -58,7 +58,7 @@ You can quickly run `dfreproject` with the following:
 
 
 
-If you use this pacakge, please cite our Zenodo DOI:
+If you use this package, please cite our Zenodo DOI:
 
 https://doi.org/10.5281/zenodo.15170605
 
