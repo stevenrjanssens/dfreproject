@@ -61,7 +61,7 @@ pip install -e ".[docs]"
 ```python
 from astropy.io import fits
 from astropy.wcs import WCS
-from reprojection import calculate_reprojection
+from dfreproject import calculate_reprojection
 
 # Load source and target images
 source_hdu = fits.open('source_image.fits')[0]
@@ -92,7 +92,7 @@ In another scenario, it may be more adventageous to use an array of data and the
 ```python
 from astropy.io import fits
 from astropy.wcs import WCS
-from reprojection import calculate_reprojection
+from dfreproject import calculate_reprojection
 
 # Load source and target images
 source_hdu = fits.open('source_image.fits')[0]
