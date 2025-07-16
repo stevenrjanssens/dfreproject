@@ -87,7 +87,7 @@ This comes with the caveat that the flux calculation most closely mimics that to
 
 
 
-In another scenario, it may be more adventageous to use an array of data and the header object that have already been loaded into memory (i.e. not in a file/hdu object). In that case, follow this example:
+In another scenario, it may be more advantageous to use an array of data and the header object that have already been loaded into memory (i.e. not in a file/hdu object). In that case, follow this example:
 
 ```python
 from astropy.io import fits
@@ -142,6 +142,17 @@ The documentation includes:
 - Mathematical details of the reprojection process
 - Tutorials and examples
 - Performance tips
+
+
+## Running Tests
+The unit tests can be run using the following command:
+
+```shell
+pytest
+```
+
+The default settings are in the `pytest.ini` file.
+
 
 ## Contributing
 
