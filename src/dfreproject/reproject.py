@@ -537,7 +537,51 @@ class Reproject:
             del x_pixel, y_pixel
         return batch_x_pixel, batch_y_pixel
 
-    def interpolate_source_image(self, interpolation_mode="bilinear") -> torch.Tensor:
+    def calculate_jacobian_determinant(self):
+        """
+        Calculate the Jacobian determinant for flux conservation.
+
+        For flux conservation, we need the inverse of the Jacobian determinant
+        of the source→target transformation.
+        """
+        eps = 1e-8
+        # Get original coordinates
+        x_source, y_source = self.calculate_sourceCoords()
+        # Store original grid
+        target_y_orig, target_x_orig = self.target_grid
+        try:
+            # Perturbation in target x-direction
+            target_x_plus = target_x_orig + eps
+            self.target_grid = (target_y_orig, target_x_plus)
+            x_source_dx, y_source_dx = self.calculate_sourceCoords()
+            # Perturbation in target y-direction
+            target_y_plus = target_y_orig + eps
+            self.target_grid = (target_y_plus, target_x_orig)
+            x_source_dy, y_source_dy = self.calculate_sourceCoords()
+            # Calculate partial derivatives
+            dx_source_dx = (x_source_dx - x_source) / eps
+            dy_source_dx = (y_source_dx - y_source) / eps
+            dx_source_dy = (x_source_dy - x_source) / eps
+            dy_source_dy = (y_source_dy - y_source) / eps
+            # Compute Jacobian determinant (target→source)
+            jacobian_det_forward = dx_source_dx * dy_source_dy - dx_source_dy * dy_source_dx
+            # For flux conservation, we need the inverse (source→target)
+            jacobian_det = 1.0 / torch.abs(jacobian_det_forward)
+            # Handle numerical issues
+            jacobian_det = torch.where(
+                torch.isfinite(jacobian_det) & (jacobian_det > 1e-10),
+                jacobian_det,
+                torch.ones_like(jacobian_det)
+            )
+            jacobian_det = torch.clamp(jacobian_det, min=1e-6, max=1e6)
+
+        finally:
+            # Restore original grid
+            self.target_grid = (target_y_orig, target_x_orig)
+
+        return jacobian_det
+
+    def interpolate_source_image(self, interpolation_mode="bilinear", conserve_flux=True) -> torch.Tensor:
         """
         Interpolate the source image at the calculated source coordinates with flux conservation.
 
@@ -572,16 +616,18 @@ class Reproject:
         -----
         This implementation uses a two-step flux conservation approach:
 
-        1. Local flux conservation: The image and a "ones" tensor are interpolated
+        1. Local flux density conservation: The image and a "ones" tensor are interpolated
            together, and the interpolated image is divided by the interpolated ones
-           tensor (footprint) to correct for any flux spreading during interpolation.
+           tensor (footprint) to correct for any flux density spreading during interpolation.
+        2. Jacobian correction for full flux conservation: Multiply the footprint-corrected flux
+            by the determinant of the Jacobian to handle changes in area during the reprojection
+
+        The Jacobian correction can be circumvented if you set conserve_flux=False. However, the default behavior is to
+        include this.
 
         Areas in the target image that map outside the source image boundaries
         will be filled with zeros (using 'zeros' padding_mode).
 
-        This method is particularly suitable for high-precision photometry with
-        extended sources, as it properly preserves both the background noise
-        characteristics and the flux distribution of sources.
         """
         # Get source coordinates
         x_source, y_source = self.calculate_sourceCoords()
@@ -612,9 +658,14 @@ class Reproject:
             result[valid_pixels] = (
                 combined_result[:, 0].squeeze()[valid_pixels] / combined_result[:, 1].squeeze()[valid_pixels]
             )
+            if conserve_flux:  # Include Jacobian determinant computation
+                jacobian_det = self.calculate_jacobian_determinant().squeeze()
+                result[valid_pixels] = result[valid_pixels] * jacobian_det[valid_pixels]
         else:
+            result = combined_result[:, 0].squeeze() / combined_result[:, 1].squeeze()
             logger.warning("No valid pixels found in footprint! Using raw interpolated values")
         del valid_pixels
+
         return result
 
 
