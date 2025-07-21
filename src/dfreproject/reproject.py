@@ -635,19 +635,12 @@ class Reproject:
         # Normalize coordinates
         x_normalized = 2.0 * (x_source / (W - 1)) - 1.0
         y_normalized = 2.0 * (y_source / (H - 1)) - 1.0
-        # Create sampling grid
-        #grid = torch.stack([x_normalized, y_normalized], dim=-1)
         # Prepare images and grid for grid_sample
         source_images = self.batch_source_images.unsqueeze(1)  # [B, 1, H, W]
         ones = torch.ones_like(source_images)
         # Combine images with ones for footprint calculation
-        #combined = torch.cat([source_images, ones], dim=1)  # [B, 2, H, W]
-        # Single grid_sample call
         combined_result = interpolate_image(torch.cat([source_images, ones], dim=1), torch.stack([x_normalized, y_normalized], dim=-1), interpolation_mode)
         del source_images, ones, x_normalized, y_normalized
-        # Split the results
-        #resampled_image = combined_result[:, 0].squeeze()
-        #resampled_footprint = combined_result[:, 1].squeeze()
         # Create output array initialized with zeros
         result = torch.full_like(combined_result[:, 0].squeeze(), torch.nan)
         # Apply footprint correction only where footprint is significant
