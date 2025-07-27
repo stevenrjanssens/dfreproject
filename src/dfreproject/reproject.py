@@ -1,5 +1,6 @@
 import logging
 from typing import List, Tuple, Union, Optional
+import psutil
 
 import numpy as np
 import torch
@@ -19,6 +20,12 @@ logger = logging.getLogger(__name__)
 
 EPSILON = 1e-10
 VALID_ORDERS = ['bicubic', 'bilinear', 'nearest', 'nearest-neighbors']
+
+
+def print_mem(tag):
+    rss = psutil.Process().memory_info().rss / 1e9
+    print(f"[{tag}] Memory RSS: {rss:.2f} GB")
+
 
 def validate_interpolation_order(order: str) -> str:
     """
@@ -180,6 +187,7 @@ class Reproject:
 
         # Define target grid
         self.target_grid = self._create_batch_target_grid(shape_out)
+        print(f"[DEBUG] Number of source HDUs: {len(self.batch_source_images)}")
 
 
     def _prepare_source_images(self, source_hdus: List[PrimaryHDU]) -> torch.Tensor:
@@ -205,7 +213,7 @@ class Reproject:
                 else:
                     img = torch.tensor(hdu.data, dtype=torch.float64, device=self.device)
                 source_images.append(img)
-            
+
         except ValueError:  # In case there is a byte order error
             source_images = [
                 torch.tensor(
@@ -351,6 +359,7 @@ class Reproject:
 
         # Apply PC Matrix and CDELT
         CD_matrix = pc_matrix * cdelt
+        del pc_matrix, cdelt
 
         # Batch matrix multiplication for scaling
         # Reshape to [B, H*W, 2] for batch matrix multiplication
@@ -372,31 +381,22 @@ class Reproject:
         phi[non_zero_r] = torch.rad2deg(
             torch.atan2(-x_scaled[non_zero_r], y_scaled[non_zero_r])
         )
-        del x_scaled, y_scaled
-        # Compute theta
-        #theta = torch.rad2deg(torch.atan2(r0, r))
-
+        del x_scaled, y_scaled, non_zero_r
         # Convert to radians
         phi_rad = torch.deg2rad(phi)
+        del phi
         theta_rad = torch.deg2rad(torch.rad2deg(torch.atan2(r0, r)))
         del r0, r
         ra0_rad = crval[0] * torch.pi / 180.0
         dec0_rad = crval[1] * torch.pi / 180.0
 
-        # Spherical coordinate calculations
-        # sin_theta = torch.sin(theta_rad)
-        # cos_theta = torch.cos(theta_rad)
-        # sin_phi = torch.sin(phi_rad)
-        # cos_phi = torch.cos(phi_rad)
-        # sin_dec0 = torch.sin(dec0_rad)
-        # cos_dec0 = torch.cos(dec0_rad)
-
         sin_dec = torch.sin(theta_rad) * torch.sin(dec0_rad) + torch.cos(theta_rad) * torch.cos(dec0_rad) * torch.cos(phi_rad)
         dec_rad = torch.arcsin(sin_dec)
-        #del sin_dec
+        del sin_dec
         # y_term = torch.cos(theta_rad) * torch.sin(phi_rad)
         # x_term = torch.sin(theta_rad) * torch.cos(dec0_rad) - torch.cos(theta_rad) * torch.sin(dec0_rad) * torch.cos(phi_rad)
         ra_rad = ra0_rad + torch.atan2(-torch.cos(theta_rad) * torch.sin(phi_rad), torch.sin(theta_rad) * torch.cos(dec0_rad) - torch.cos(theta_rad) * torch.sin(dec0_rad) * torch.cos(phi_rad))
+        del theta_rad, phi_rad, ra0_rad, dec0_rad
         # Convert to degrees and normalize
         ra = torch.rad2deg(ra_rad) % 360.0
         dec = torch.rad2deg(dec_rad)
@@ -415,7 +415,9 @@ class Reproject:
             Batch of source image pixel coordinates
         """
         # Get batch of sky coordinates
+        print_mem("Pre calculation")
         batch_ra, batch_dec = self.calculate_skyCoords()
+        print_mem('After sky Coords')
         B, H, W = batch_ra.shape
 
         # Prepare to collect results for each source image
@@ -440,6 +442,7 @@ class Reproject:
             dec_rad = torch.deg2rad(dec)
             ra_dim = ra.dim()
             ra_shape = ra.shape
+            print_mem('before delete ra dec')
             del ra, dec
             ra0_rad = crval[0] * torch.pi / 180.0
             dec0_rad = crval[1] * torch.pi / 180.0
@@ -447,21 +450,19 @@ class Reproject:
             # if not isinstance(ra, torch.Tensor):
             #     ra = torch.tensor(ra, device=self.device)
             # Step 1: Convert from world to native spherical coordinates
-            # Calculate the difference in RA
-            #delta_ra = ra_rad - ra0_rad
-            # Calculate sine and cosine values
-
             # Calculate the native spherical coordinates using the correct sign conventions
             y_phi = -torch.cos(dec_rad) * torch.sin(ra_rad - ra0_rad)  # Note the negative sign
             # Calculate the denominator for phi
             x_phi = torch.sin(dec_rad) * torch.cos(dec0_rad) - torch.cos(dec_rad) * torch.sin(dec0_rad) * torch.cos(ra_rad - ra0_rad)
             # Calculate native longitude (phi)
             phi = atan2d(y_phi, x_phi)
+            print_mem('before delete x_phi y_phi')
             del x_phi, y_phi
             # Calculate native latitude (theta)
             theta = torch.rad2deg(
                 torch.arcsin(torch.sin(dec_rad) * torch.sin(dec0_rad) + torch.cos(dec_rad) * torch.cos(dec0_rad) * torch.cos(ra_rad - ra0_rad))
             )
+            del ra_rad, dec_rad
             #del sin_dec, cos_dec, sin_dec0, cos_dec0, cos_delta_ra
             # Step 2: Apply the TAN projection (tans2x function from WCSLib)
             # Calculate sine and cosine of phi and theta
@@ -477,15 +478,17 @@ class Reproject:
             r0 = torch.tensor(180.0 / torch.pi, device=self.device)
             # Calculate the scaling factor r with correct sign
             r = r0 * cos_theta / sin_theta
+            print_mem('before del cos_theta')
             del cos_theta, sin_theta, r0
             # Calculate intermediate world coordinates (x_scaled, y_scaled)
             # With the corrected signs based on your findings
             x_scaled = -r * sin_phi  # Note the negative sign
             y_scaled = r * cos_phi
-            del sin_phi, cos_phi
+            del sin_phi, cos_phi, r
             # Step 3: Apply the inverse of the CD matrix to get pixel offsets
             # First, construct the CD matrix
             CD_matrix = pc_matrix * cdelt
+            print_mem('before delete pc_matrix')
             del pc_matrix, cdelt
             # Calculate the inverse of the CD matrix
             CD_inv = torch.linalg.inv(CD_matrix)
@@ -527,14 +530,17 @@ class Reproject:
                     v = v.reshape(original_shape)
             if sip_coeffs is not None:
                 u, v = apply_inverse_sip_distortion(u, v, sip_coeffs, self.device)
+
             # Step 4: Add the reference pixel to get final pixel coordinates
             # Remember to add (CRPIX-1) to account for 1-based indexing in FITS/WCS
             x_pixel = u + (crpix[0] - 1)
             y_pixel = v + (crpix[1] - 1)
+            print_mem('before del u v')
             del u,v
             batch_x_pixel[b] = x_pixel
             batch_y_pixel[b] = y_pixel
-            del x_pixel, y_pixel
+            del x_pixel, y_pixel, crpix, crval
+        del batch_ra, batch_dec
         return batch_x_pixel, batch_y_pixel
 
     def calculate_jacobian_determinant(self):
@@ -554,19 +560,22 @@ class Reproject:
             target_x_plus = target_x_orig + eps
             self.target_grid = (target_y_orig, target_x_plus)
             x_source_dx, y_source_dx = self.calculate_sourceCoords()
+            dx_source_dx = (x_source_dx - x_source) / eps
+            dy_source_dx = (y_source_dx - y_source) / eps
+            del x_source_dx, y_source_dx, target_x_plus
             # Perturbation in target y-direction
             target_y_plus = target_y_orig + eps
             self.target_grid = (target_y_plus, target_x_orig)
             x_source_dy, y_source_dy = self.calculate_sourceCoords()
-            # Calculate partial derivatives
-            dx_source_dx = (x_source_dx - x_source) / eps
-            dy_source_dx = (y_source_dx - y_source) / eps
             dx_source_dy = (x_source_dy - x_source) / eps
             dy_source_dy = (y_source_dy - y_source) / eps
+            del x_source_dy, y_source_dy, target_y_plus, x_source, y_source
             # Compute Jacobian determinant (target→source)
             jacobian_det_forward = dx_source_dx * dy_source_dy - dx_source_dy * dy_source_dx
+            del dx_source_dx, dy_source_dx, dx_source_dy, dy_source_dy
             # For flux conservation, we need the inverse (source→target)
             jacobian_det = 1.0 / torch.abs(jacobian_det_forward)
+            del jacobian_det_forward
             # Handle numerical issues
             jacobian_det = torch.where(
                 torch.isfinite(jacobian_det) & (jacobian_det > 1e-10),
@@ -578,6 +587,7 @@ class Reproject:
         finally:
             # Restore original grid
             self.target_grid = (target_y_orig, target_x_orig)
+            del target_y_orig, target_x_orig
 
         return jacobian_det
 
@@ -636,10 +646,12 @@ class Reproject:
         x_normalized = 2.0 * (x_source / (W - 1)) - 1.0
         y_normalized = 2.0 * (y_source / (H - 1)) - 1.0
         # Prepare images and grid for grid_sample
+        print_mem('before creating combines')
         source_images = self.batch_source_images.unsqueeze(1)  # [B, 1, H, W]
         ones = torch.ones_like(source_images)
         # Combine images with ones for footprint calculation
         combined_result = interpolate_image(torch.cat([source_images, ones], dim=1), torch.stack([x_normalized, y_normalized], dim=-1), interpolation_mode)
+        print_mem('After del source_images, ones')
         del source_images, ones, x_normalized, y_normalized
         # Create output array initialized with zeros
         result = torch.full_like(combined_result[:, 0].squeeze(), torch.nan)
@@ -776,7 +788,7 @@ def calculate_reprojection(
                 return TensorHDU(data=data, header=header)
             else:
                 return PrimaryHDU(data=data, header=header)
-            
+
         else:
             raise TypeError("Each item must be a PrimaryHDU, TensorHDU, or a (data, wcs/header) tuple.")
     # Normalize source_input to a list of HDUs
@@ -797,7 +809,6 @@ def calculate_reprojection(
                              num_threads=num_threads,
                              requires_grad=requires_grad)
     order = validate_interpolation_order(order)
-    #input_type = source_hdus[0].data[0][0].dtype
 
     if(requires_grad):
         result = reprojection.interpolate_source_image(interpolation_mode=order).cpu()
