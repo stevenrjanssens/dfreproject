@@ -415,9 +415,7 @@ class Reproject:
             Batch of source image pixel coordinates
         """
         # Get batch of sky coordinates
-        print_mem("Pre calculation")
         batch_ra, batch_dec = self.calculate_skyCoords()
-        print_mem('After sky Coords')
         B, H, W = batch_ra.shape
 
         # Prepare to collect results for each source image
@@ -442,7 +440,6 @@ class Reproject:
             dec_rad = torch.deg2rad(dec)
             ra_dim = ra.dim()
             ra_shape = ra.shape
-            print_mem('before delete ra dec')
             del ra, dec
             ra0_rad = crval[0] * torch.pi / 180.0
             dec0_rad = crval[1] * torch.pi / 180.0
@@ -456,7 +453,6 @@ class Reproject:
             x_phi = torch.sin(dec_rad) * torch.cos(dec0_rad) - torch.cos(dec_rad) * torch.sin(dec0_rad) * torch.cos(ra_rad - ra0_rad)
             # Calculate native longitude (phi)
             phi = atan2d(y_phi, x_phi)
-            print_mem('before delete x_phi y_phi')
             del x_phi, y_phi
             # Calculate native latitude (theta)
             theta = torch.rad2deg(
@@ -478,7 +474,6 @@ class Reproject:
             r0 = torch.tensor(180.0 / torch.pi, device=self.device)
             # Calculate the scaling factor r with correct sign
             r = r0 * cos_theta / sin_theta
-            print_mem('before del cos_theta')
             del cos_theta, sin_theta, r0
             # Calculate intermediate world coordinates (x_scaled, y_scaled)
             # With the corrected signs based on your findings
@@ -488,7 +483,6 @@ class Reproject:
             # Step 3: Apply the inverse of the CD matrix to get pixel offsets
             # First, construct the CD matrix
             CD_matrix = pc_matrix * cdelt
-            print_mem('before delete pc_matrix')
             del pc_matrix, cdelt
             # Calculate the inverse of the CD matrix
             CD_inv = torch.linalg.inv(CD_matrix)
@@ -535,7 +529,6 @@ class Reproject:
             # Remember to add (CRPIX-1) to account for 1-based indexing in FITS/WCS
             x_pixel = u + (crpix[0] - 1)
             y_pixel = v + (crpix[1] - 1)
-            print_mem('before del u v')
             del u,v
             batch_x_pixel[b] = x_pixel
             batch_y_pixel[b] = y_pixel
@@ -646,12 +639,10 @@ class Reproject:
         x_normalized = 2.0 * (x_source / (W - 1)) - 1.0
         y_normalized = 2.0 * (y_source / (H - 1)) - 1.0
         # Prepare images and grid for grid_sample
-        print_mem('before creating combines')
         source_images = self.batch_source_images.unsqueeze(1)  # [B, 1, H, W]
         ones = torch.ones_like(source_images)
         # Combine images with ones for footprint calculation
         combined_result = interpolate_image(torch.cat([source_images, ones], dim=1), torch.stack([x_normalized, y_normalized], dim=-1), interpolation_mode)
-        print_mem('After del source_images, ones')
         del source_images, ones, x_normalized, y_normalized
         # Create output array initialized with zeros
         result = torch.full_like(combined_result[:, 0].squeeze(), torch.nan)
