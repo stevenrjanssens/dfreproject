@@ -1,6 +1,5 @@
 import logging
 from typing import List, Tuple, Union, Optional
-import psutil
 
 import numpy as np
 import torch
@@ -21,10 +20,6 @@ logger = logging.getLogger(__name__)
 EPSILON = 1e-10
 VALID_ORDERS = ['bicubic', 'bilinear', 'nearest', 'nearest-neighbors']
 
-
-def print_mem(tag):
-    rss = psutil.Process().memory_info().rss / 1e9
-    print(f"[{tag}] Memory RSS: {rss:.2f} GB")
 
 
 def validate_interpolation_order(order: str) -> str:
