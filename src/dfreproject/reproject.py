@@ -125,7 +125,8 @@ class Reproject:
         shape_out: Tuple[int, int],
         device: str = None,
         num_threads: int = None,
-        requires_grad: bool = False
+        requires_grad: bool = False,
+        conserve_flux: bool = False
     ):
         """
         Initialize a dfreproject operation between source and target image frames.
@@ -151,6 +152,9 @@ class Reproject:
 
         num_threads: int
             Number of threads to use on CPU
+
+        conserve_flux: bool, optional
+            if True, enables flux conservation through Jacobian calculation. Note that this increases RAM usage.
 
         Notes
         -----
@@ -187,8 +191,7 @@ class Reproject:
 
         # Define target grid
         self.target_grid = self._create_batch_target_grid(shape_out)
-        print(f"[DEBUG] Number of source HDUs: {len(self.batch_source_images)}")
-
+        self.conserve_flux = conserve_flux
 
     def _prepare_source_images(self, source_hdus: List[PrimaryHDU]) -> torch.Tensor:
         """
@@ -648,7 +651,7 @@ class Reproject:
 
 
 
-    def interpolate_source_image(self, interpolation_mode="bilinear", conserve_flux=True) -> torch.Tensor:
+    def interpolate_source_image(self, interpolation_mode="bilinear") -> torch.Tensor:
         """
         Interpolate the source image at the calculated source coordinates with flux conservation.
 
@@ -718,8 +721,8 @@ class Reproject:
             result[valid_pixels] = (
                 combined_result[:, 0].squeeze()[valid_pixels] / combined_result[:, 1].squeeze()[valid_pixels]
             )
-            if conserve_flux:  # Include Jacobian determinant computation
-                jacobian_det = self.calculate_jacobian_determinant_sparse(downsample_factor=4).squeeze()
+            if self.conserve_flux:  # Include Jacobian determinant computation
+                jacobian_det = self.calculate_jacobian_determinant_sparse(downsample_factor=2).squeeze()
                 result[valid_pixels] = result[valid_pixels] / jacobian_det[valid_pixels]
         else:
             result = combined_result[:, 0].squeeze() / combined_result[:, 1].squeeze()
@@ -744,7 +747,8 @@ def calculate_reprojection(
     order: str = "nearest",
     device: str = None,
     num_threads: int = None,
-    requires_grad: bool = False
+    requires_grad: bool = False,
+    converve_flux: bool = False
 ):
     """
     Reproject an astronomical image from a source WCS to a target WCS.
@@ -787,6 +791,9 @@ def calculate_reprojection(
 
     requires_grad: bool, optional
         If True, enables autograd for PyTorch tensors.
+
+    conserve_flux: bool, optional
+        if True, enables flux conservation through Jacobian calculation. Note that this increases RAM usage.
 
     Returns
     -------
@@ -864,7 +871,10 @@ def calculate_reprojection(
                              shape_out=shape_out,
                              device=device,
                              num_threads=num_threads,
-                             requires_grad=requires_grad)
+                             requires_grad=requires_grad,
+                             conserve_flux=converve_flux
+
+    )
     order = validate_interpolation_order(order)
 
     if(requires_grad):
