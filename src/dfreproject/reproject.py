@@ -536,53 +536,117 @@ class Reproject:
         del batch_ra, batch_dec
         return batch_x_pixel, batch_y_pixel
 
-    def calculate_jacobian_determinant(self):
-        """
-        Calculate the Jacobian determinant for flux conservation.
 
-        For flux conservation, we need the inverse of the Jacobian determinant
-        of the source→target transformation.
+    def calculate_jacobian_determinant_sparse(self, downsample_factor=4):
         """
-        eps = 1e-8
-        # Get original coordinates
-        x_source, y_source = self.calculate_sourceCoords()
-        # Store original grid
-        target_y_orig, target_x_orig = self.target_grid
+        Calculate Jacobian determinant using sparse sampling + interpolation.
+        Much faster for large grids since WCS transformations are smooth.
+        Memory optimized with explicit cleanup and torch.no_grad().
+        """
+        # Disable gradient computation for memory efficiency
+        with torch.no_grad():
+            eps = 1e-4
+            target_y_orig, target_x_orig = self.target_grid
+            orig_shape = target_y_orig.shape
+
+            # Force garbage collection before starting
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
+        # Handle both 2D and 3D tensors
+        if len(orig_shape) == 3:
+            # 3D case: [batch, height, width] or similar
+            sparse_y = target_y_orig[:, ::downsample_factor, ::downsample_factor]
+            sparse_x = target_x_orig[:, ::downsample_factor, ::downsample_factor]
+            spatial_dims = orig_shape[1:]  # Height, width for interpolation
+        else:
+            # 2D case: [height, width]
+            sparse_y = target_y_orig[::downsample_factor, ::downsample_factor]
+            sparse_x = target_x_orig[::downsample_factor, ::downsample_factor]
+            spatial_dims = orig_shape  # Full shape for interpolation
+
+        # Compute Jacobian on sparse grid using your original method logic
+        self.target_grid = (sparse_y, sparse_x)
+
         try:
+            # Get original coordinates on sparse grid
+            x_source, y_source = self.calculate_sourceCoords()
+
             # Perturbation in target x-direction
-            target_x_plus = target_x_orig + eps
-            self.target_grid = (target_y_orig, target_x_plus)
+            target_x_plus = sparse_x + eps
+            self.target_grid = (sparse_y, target_x_plus)
             x_source_dx, y_source_dx = self.calculate_sourceCoords()
             dx_source_dx = (x_source_dx - x_source) / eps
             dy_source_dx = (y_source_dx - y_source) / eps
             del x_source_dx, y_source_dx, target_x_plus
+
             # Perturbation in target y-direction
-            target_y_plus = target_y_orig + eps
-            self.target_grid = (target_y_plus, target_x_orig)
+            target_y_plus = sparse_y + eps
+            self.target_grid = (target_y_plus, sparse_x)
             x_source_dy, y_source_dy = self.calculate_sourceCoords()
             dx_source_dy = (x_source_dy - x_source) / eps
             dy_source_dy = (y_source_dy - y_source) / eps
             del x_source_dy, y_source_dy, target_y_plus, x_source, y_source
+
             # Compute Jacobian determinant (target→source)
             jacobian_det_forward = dx_source_dx * dy_source_dy - dx_source_dy * dy_source_dx
             del dx_source_dx, dy_source_dx, dx_source_dy, dy_source_dy
+
             # For flux conservation, we need the inverse (source→target)
-            jacobian_det = 1.0 / torch.abs(jacobian_det_forward)
+            jacobian_sparse = 1.0 / torch.abs(jacobian_det_forward)
             del jacobian_det_forward
+
             # Handle numerical issues
-            jacobian_det = torch.where(
-                torch.isfinite(jacobian_det) & (jacobian_det > 1e-10),
-                jacobian_det,
-                torch.ones_like(jacobian_det)
+            jacobian_sparse = torch.where(
+                torch.isfinite(jacobian_sparse) & (jacobian_sparse > 1e-10),
+                jacobian_sparse,
+                torch.ones_like(jacobian_sparse)
             )
-            jacobian_det = torch.clamp(jacobian_det, min=1e-6, max=1e6)
+            jacobian_sparse = torch.clamp(jacobian_sparse, min=1e-6, max=1e6)
 
         finally:
             # Restore original grid
             self.target_grid = (target_y_orig, target_x_orig)
-            del target_y_orig, target_x_orig
+
+        # Interpolate back to full resolution
+        if len(orig_shape) == 3:
+            # 3D case: interpolate each item in the batch
+            jacobian_results = []
+            for i in range(orig_shape[0]):
+                # Extract 2D slice from sparse result
+                if jacobian_sparse.dim() == 3:
+                    sparse_2d = jacobian_sparse[i]
+                else:
+                    # If sparse result collapsed to 2D, use it directly
+                    sparse_2d = jacobian_sparse
+
+                # Interpolate this slice
+                interp_2d = torch.nn.functional.interpolate(
+                    sparse_2d.unsqueeze(0).unsqueeze(0),  # Add batch + channel dims
+                    size=spatial_dims,  # Target spatial dimensions
+                    mode='bilinear',
+                    align_corners=True
+                ).squeeze()  # Remove batch + channel dims
+
+                jacobian_results.append(interp_2d.unsqueeze(0))  # Add batch dim
+
+            jacobian_det = torch.cat(jacobian_results, dim=0)
+
+        else:
+            # 2D case: direct interpolation
+            jacobian_det = torch.nn.functional.interpolate(
+                jacobian_sparse.unsqueeze(0).unsqueeze(0),  # Add batch + channel dims
+                size=spatial_dims,
+                mode='bilinear',
+                align_corners=True
+            ).squeeze()  # Remove batch + channel dims
 
         return jacobian_det
+
+
+
+
+
 
     def interpolate_source_image(self, interpolation_mode="bilinear", conserve_flux=True) -> torch.Tensor:
         """
@@ -655,14 +719,16 @@ class Reproject:
                 combined_result[:, 0].squeeze()[valid_pixels] / combined_result[:, 1].squeeze()[valid_pixels]
             )
             if conserve_flux:  # Include Jacobian determinant computation
-                jacobian_det = self.calculate_jacobian_determinant().squeeze()
-                result[valid_pixels] = result[valid_pixels] * jacobian_det[valid_pixels]
+                jacobian_det = self.calculate_jacobian_determinant_sparse(downsample_factor=4).squeeze()
+                result[valid_pixels] = result[valid_pixels] / jacobian_det[valid_pixels]
         else:
             result = combined_result[:, 0].squeeze() / combined_result[:, 1].squeeze()
             logger.warning("No valid pixels found in footprint! Using raw interpolated values")
         del valid_pixels
 
         return result
+
+
 
 
 def calculate_reprojection(
