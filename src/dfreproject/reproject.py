@@ -1,25 +1,19 @@
 import logging
-from typing import List, Tuple, Union, Optional
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import torch
-from astropy.io.fits import PrimaryHDU, Header
+from astropy.io.fits import Header, PrimaryHDU
 from astropy.wcs import WCS
+
+from .sip import apply_inverse_sip_distortion, apply_sip_distortion, get_sip_coeffs
 from .tensorhdu import TensorHDU
-
-from .sip import (
-    apply_inverse_sip_distortion,
-    apply_sip_distortion,
-    get_sip_coeffs
-)
 from .utils import get_device
-
 
 logger = logging.getLogger(__name__)
 
 EPSILON = 1e-10
-VALID_ORDERS = ['bicubic', 'bilinear', 'nearest', 'nearest-neighbors']
-
+VALID_ORDERS = ["bicubic", "bilinear", "nearest", "nearest-neighbors"]
 
 
 def validate_interpolation_order(order: str) -> str:
@@ -45,10 +39,11 @@ def validate_interpolation_order(order: str) -> str:
     """
     if order not in VALID_ORDERS:
         raise ValueError(f"order must be one of: {', '.join(VALID_ORDERS)}")
-    elif order == 'nearest-neighbors':
-        return 'nearest'
+    elif order == "nearest-neighbors":
+        return "nearest"
     else:
         return order
+
 
 # Helper functions for trigonometric calculations
 def atan2d(y: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
@@ -87,6 +82,7 @@ def sincosd(angle_deg: torch.Tensor) -> torch.Tensor:
     angle_rad = torch.deg2rad(angle_deg)
     return torch.sin(angle_rad), torch.cos(angle_rad)
 
+
 @torch.jit.script
 def interpolate_image(
     source_image: torch.Tensor, grid: torch.Tensor, interpolation_mode: str
@@ -121,7 +117,7 @@ class Reproject:
         device: str = None,
         num_threads: int = None,
         requires_grad: bool = False,
-        conserve_flux: bool = False
+        conserve_flux: bool = False,
     ):
         """
         Initialize a dfreproject operation between source and target image frames.
@@ -177,7 +173,6 @@ class Reproject:
 
         self.requires_grad = requires_grad
 
-
         self.batch_source_images = self._prepare_source_images(source_hdus)
 
         # Initialize the WCS objects
@@ -209,7 +204,9 @@ class Reproject:
                 if self.requires_grad and isinstance(hdu, TensorHDU):
                     img = hdu.tensor.to(self.device)
                 else:
-                    img = torch.tensor(hdu.data, dtype=torch.float64, device=self.device)
+                    img = torch.tensor(
+                        hdu.data, dtype=torch.float64, device=self.device
+                    )
                 source_images.append(img)
 
         except ValueError:  # In case there is a byte order error
@@ -256,7 +253,9 @@ class Reproject:
             "sip_coeffs": get_sip_coeffs(wcs),
         }
 
-    def _prepare_batch_wcs_params(self, source_hdus: Union[List[PrimaryHDU], List[TensorHDU]]) -> List[dict]:
+    def _prepare_batch_wcs_params(
+        self, source_hdus: Union[List[PrimaryHDU], List[TensorHDU]]
+    ) -> List[dict]:
         """
         Prepare batch of WCS parameters
 
@@ -272,7 +271,9 @@ class Reproject:
         """
         return [self._extract_wcs_params(WCS(hdu.header)) for hdu in source_hdus]
 
-    def _create_batch_target_grid(self, shape_out: Tuple[int, int]) -> Tuple[torch.Tensor, torch.Tensor]:
+    def _create_batch_target_grid(
+        self, shape_out: Tuple[int, int]
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Create a batched target grid matching the number of source images
 
@@ -388,12 +389,18 @@ class Reproject:
         ra0_rad = crval[0] * torch.pi / 180.0
         dec0_rad = crval[1] * torch.pi / 180.0
 
-        sin_dec = torch.sin(theta_rad) * torch.sin(dec0_rad) + torch.cos(theta_rad) * torch.cos(dec0_rad) * torch.cos(phi_rad)
+        sin_dec = torch.sin(theta_rad) * torch.sin(dec0_rad) + torch.cos(
+            theta_rad
+        ) * torch.cos(dec0_rad) * torch.cos(phi_rad)
         dec_rad = torch.arcsin(sin_dec)
         del sin_dec
         # y_term = torch.cos(theta_rad) * torch.sin(phi_rad)
         # x_term = torch.sin(theta_rad) * torch.cos(dec0_rad) - torch.cos(theta_rad) * torch.sin(dec0_rad) * torch.cos(phi_rad)
-        ra_rad = ra0_rad + torch.atan2(-torch.cos(theta_rad) * torch.sin(phi_rad), torch.sin(theta_rad) * torch.cos(dec0_rad) - torch.cos(theta_rad) * torch.sin(dec0_rad) * torch.cos(phi_rad))
+        ra_rad = ra0_rad + torch.atan2(
+            -torch.cos(theta_rad) * torch.sin(phi_rad),
+            torch.sin(theta_rad) * torch.cos(dec0_rad)
+            - torch.cos(theta_rad) * torch.sin(dec0_rad) * torch.cos(phi_rad),
+        )
         del theta_rad, phi_rad, ra0_rad, dec0_rad
         # Convert to degrees and normalize
         ra = torch.rad2deg(ra_rad) % 360.0
@@ -446,18 +453,27 @@ class Reproject:
             #     ra = torch.tensor(ra, device=self.device)
             # Step 1: Convert from world to native spherical coordinates
             # Calculate the native spherical coordinates using the correct sign conventions
-            y_phi = -torch.cos(dec_rad) * torch.sin(ra_rad - ra0_rad)  # Note the negative sign
+            y_phi = -torch.cos(dec_rad) * torch.sin(
+                ra_rad - ra0_rad
+            )  # Note the negative sign
             # Calculate the denominator for phi
-            x_phi = torch.sin(dec_rad) * torch.cos(dec0_rad) - torch.cos(dec_rad) * torch.sin(dec0_rad) * torch.cos(ra_rad - ra0_rad)
+            x_phi = torch.sin(dec_rad) * torch.cos(dec0_rad) - torch.cos(
+                dec_rad
+            ) * torch.sin(dec0_rad) * torch.cos(ra_rad - ra0_rad)
             # Calculate native longitude (phi)
             phi = atan2d(y_phi, x_phi)
             del x_phi, y_phi
             # Calculate native latitude (theta)
             theta = torch.rad2deg(
-                torch.arcsin(torch.sin(dec_rad) * torch.sin(dec0_rad) + torch.cos(dec_rad) * torch.cos(dec0_rad) * torch.cos(ra_rad - ra0_rad))
+                torch.arcsin(
+                    torch.sin(dec_rad) * torch.sin(dec0_rad)
+                    + torch.cos(dec_rad)
+                    * torch.cos(dec0_rad)
+                    * torch.cos(ra_rad - ra0_rad)
+                )
             )
             del ra_rad, dec_rad
-            #del sin_dec, cos_dec, sin_dec0, cos_dec0, cos_delta_ra
+            # del sin_dec, cos_dec, sin_dec0, cos_dec0, cos_delta_ra
             # Step 2: Apply the TAN projection (tans2x function from WCSLib)
             # Calculate sine and cosine of phi and theta
             sin_phi, cos_phi = sincosd(phi)
@@ -527,13 +543,12 @@ class Reproject:
             # Remember to add (CRPIX-1) to account for 1-based indexing in FITS/WCS
             x_pixel = u + (crpix[0] - 1)
             y_pixel = v + (crpix[1] - 1)
-            del u,v
+            del u, v
             batch_x_pixel[b] = x_pixel
             batch_y_pixel[b] = y_pixel
             del x_pixel, y_pixel, crpix, crval
         del batch_ra, batch_dec
         return batch_x_pixel, batch_y_pixel
-
 
     def calculate_jacobian_determinant_sparse(self, downsample_factor=4):
         """
@@ -587,7 +602,9 @@ class Reproject:
             del x_source_dy, y_source_dy, target_y_plus, x_source, y_source
 
             # Compute Jacobian determinant (target→source)
-            jacobian_det_forward = dx_source_dx * dy_source_dy - dx_source_dy * dy_source_dx
+            jacobian_det_forward = (
+                dx_source_dx * dy_source_dy - dx_source_dy * dy_source_dx
+            )
             del dx_source_dx, dy_source_dx, dx_source_dy, dy_source_dy
 
             # For flux conservation, we need the inverse (source→target)
@@ -598,7 +615,7 @@ class Reproject:
             jacobian_sparse = torch.where(
                 torch.isfinite(jacobian_sparse) & (jacobian_sparse > 1e-10),
                 jacobian_sparse,
-                torch.ones_like(jacobian_sparse)
+                torch.ones_like(jacobian_sparse),
             )
             jacobian_sparse = torch.clamp(jacobian_sparse, min=1e-6, max=1e6)
 
@@ -622,8 +639,8 @@ class Reproject:
                 interp_2d = torch.nn.functional.interpolate(
                     sparse_2d.unsqueeze(0).unsqueeze(0),  # Add batch + channel dims
                     size=spatial_dims,  # Target spatial dimensions
-                    mode='bilinear',
-                    align_corners=True
+                    mode="bilinear",
+                    align_corners=True,
                 ).squeeze()  # Remove batch + channel dims
 
                 jacobian_results.append(interp_2d.unsqueeze(0))  # Add batch dim
@@ -635,16 +652,11 @@ class Reproject:
             jacobian_det = torch.nn.functional.interpolate(
                 jacobian_sparse.unsqueeze(0).unsqueeze(0),  # Add batch + channel dims
                 size=spatial_dims,
-                mode='bilinear',
-                align_corners=True
+                mode="bilinear",
+                align_corners=True,
             ).squeeze()  # Remove batch + channel dims
 
         return jacobian_det
-
-
-
-
-
 
     def interpolate_source_image(self, interpolation_mode="bilinear") -> torch.Tensor:
         """
@@ -704,7 +716,11 @@ class Reproject:
         source_images = self.batch_source_images.unsqueeze(1)  # [B, 1, H, W]
         ones = torch.ones_like(source_images)
         # Combine images with ones for footprint calculation
-        combined_result = interpolate_image(torch.cat([source_images, ones], dim=1), torch.stack([x_normalized, y_normalized], dim=-1), interpolation_mode)
+        combined_result = interpolate_image(
+            torch.cat([source_images, ones], dim=1),
+            torch.stack([x_normalized, y_normalized], dim=-1),
+            interpolation_mode,
+        )
         del source_images, ones, x_normalized, y_normalized
         # Create output array initialized with zeros
         result = torch.full_like(combined_result[:, 0].squeeze(), torch.nan)
@@ -714,19 +730,22 @@ class Reproject:
         if torch.any(valid_pixels):
             # Normalize by the footprint where valid
             result[valid_pixels] = (
-                combined_result[:, 0].squeeze()[valid_pixels] / combined_result[:, 1].squeeze()[valid_pixels]
+                combined_result[:, 0].squeeze()[valid_pixels]
+                / combined_result[:, 1].squeeze()[valid_pixels]
             )
             if self.conserve_flux:  # Include Jacobian determinant computation
-                jacobian_det = self.calculate_jacobian_determinant_sparse(downsample_factor=2).squeeze()
+                jacobian_det = self.calculate_jacobian_determinant_sparse(
+                    downsample_factor=2
+                ).squeeze()
                 result[valid_pixels] = result[valid_pixels] / jacobian_det[valid_pixels]
         else:
             result = combined_result[:, 0].squeeze() / combined_result[:, 1].squeeze()
-            logger.warning("No valid pixels found in footprint! Using raw interpolated values")
+            logger.warning(
+                "No valid pixels found in footprint! Using raw interpolated values"
+            )
         del valid_pixels
 
         return result
-
-
 
 
 def calculate_reprojection(
@@ -735,7 +754,7 @@ def calculate_reprojection(
         TensorHDU,
         Tuple[np.ndarray, Union[WCS, Header]],
         Tuple[torch.Tensor, Union[WCS, Header]],
-        List[Union[PrimaryHDU, Tuple[np.ndarray, Union[WCS, Header]]]]
+        List[Union[PrimaryHDU, Tuple[np.ndarray, Union[WCS, Header]]]],
     ],
     target_wcs: Union[WCS, Header],
     shape_out: Optional[Tuple[int, int]] = None,
@@ -743,7 +762,7 @@ def calculate_reprojection(
     device: str = None,
     num_threads: int = None,
     requires_grad: bool = False,
-    converve_flux: bool = False
+    converve_flux: bool = False,
 ):
     """
     Reproject an astronomical image from a source WCS to a target WCS.
@@ -849,7 +868,10 @@ def calculate_reprojection(
                 return PrimaryHDU(data=data, header=header)
 
         else:
-            raise TypeError("Each item must be a PrimaryHDU, TensorHDU, or a (data, wcs/header) tuple.")
+            raise TypeError(
+                "Each item must be a PrimaryHDU, TensorHDU, or a (data, wcs/header) tuple."
+            )
+
     # Normalize source_input to a list of HDUs
     if isinstance(source_hdus, list):
         source_hdus = [normalize_to_hdu(item) for item in source_hdus]
@@ -861,22 +883,26 @@ def calculate_reprojection(
         target_wcs = WCS(target_wcs)
     if not shape_out:
         shape_out = source_hdus[0].data.shape
-    reprojection = Reproject(source_hdus=source_hdus,
-                             target_wcs=target_wcs,
-                             shape_out=shape_out,
-                             device=device,
-                             num_threads=num_threads,
-                             requires_grad=requires_grad,
-                             conserve_flux=converve_flux
-
+    reprojection = Reproject(
+        source_hdus=source_hdus,
+        target_wcs=target_wcs,
+        shape_out=shape_out,
+        device=device,
+        num_threads=num_threads,
+        requires_grad=requires_grad,
+        conserve_flux=converve_flux,
     )
     order = validate_interpolation_order(order)
 
-    if(requires_grad):
+    if requires_grad:
         result = reprojection.interpolate_source_image(interpolation_mode=order).cpu()
     else:
-        result = reprojection.interpolate_source_image(interpolation_mode=order).cpu().numpy().astype(np.float32)
-
+        result = (
+            reprojection.interpolate_source_image(interpolation_mode=order)
+            .cpu()
+            .numpy()
+            .astype(np.float32)
+        )
 
     torch.cuda.empty_cache()
     return result
