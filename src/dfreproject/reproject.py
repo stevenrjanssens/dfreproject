@@ -20,7 +20,8 @@ def validate_interpolation_order(order: str) -> str:
     """
     Function to validate the requested interpolation order.
 
-    The order must be one of the following: {valid_orders}
+    The order must be one of the following: "bicubic", "bilinear",
+    "nearest-neighbors". "nearest" is an alias for "nearest-neighbors".
 
     Parameters
     ----------
@@ -48,36 +49,36 @@ def validate_interpolation_order(order: str) -> str:
 # Helper functions for trigonometric calculations
 def atan2d(y: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
     """
-    PyTorch implementation of WCSLib's atan2d function
+    PyTorch implementation of WCSLib's atan2d function.
 
     Parameters
     ----------
     y : torch.Tensor
-        y coordinate(s)
+        y coordinate(s).
     x : torch.Tensor
-        x coordinate(s)
+        x coordinate(s).
 
     Returns
     -------
     torch.Tensor
-        atan2d(y, x) in degrees
+        atan2d(y, x) in degrees.
     """
     return torch.rad2deg(torch.atan2(y, x))
 
 
 def sincosd(angle_deg: torch.Tensor) -> torch.Tensor:
     """
-    PyTorch implementation of WCSLib's sincosd function
+    PyTorch implementation of WCSLib's sincosd function.
 
     Parameters
     ----------
     angle_deg : torch.Tensor
-        angle in degrees
+        angle in degrees.
 
     Returns
     -------
     tuple(torch.Tensor, torch.Tensor)
-        sin(angle) in degrees, cos(angle) in degrees
+        sin(angle) in degrees, cos(angle) in degrees.
     """
     angle_rad = torch.deg2rad(angle_deg)
     return torch.sin(angle_rad), torch.cos(angle_rad)
@@ -88,16 +89,16 @@ def interpolate_image(
     source_image: torch.Tensor, grid: torch.Tensor, interpolation_mode: str
 ) -> torch.Tensor:
     """
-    JIT-compiled image interpolation using grid_sample
+    JIT-compiled image interpolation using grid_sample.
 
     Parameters
     ----------
     source_image : torch.Tensor
-        Source image to interpolate
+        Source image to interpolate.
     grid : torch.Tensor
-        Grid on which to interpolate
+        Grid on which to interpolate.
     interpolation_mode: str
-        Interpolation mode to use
+        Interpolation mode to use.
     """
     return torch.nn.functional.grid_sample(
         source_image,
@@ -130,22 +131,25 @@ class Reproject:
         Parameters
         ----------
         source_hdus : List[PrimaryHDU]
-            List of HDUs containing the data and the header information for the source image
+            List of HDUs containing the data and the header information for the
+            source image.
 
         target_wcs : WCS
             WCS for the target in an astropy.wcs compatible format.
 
         shape_out: Tuple[int, int]
-            Shape of the output image
+            Shape of the output image.
 
         device: str
-            Device to use for computations. Defaults to GPU if available otherwise uses CPU
+            Device to use for computations. Defaults to GPU if available
+            otherwise uses CPU.
 
         num_threads: int
-            Number of threads to use on CPU
+            Number of threads to use on CPU.
 
         conserve_flux: bool, optional
-            if True, enables flux conservation through Jacobian calculation. Note that this increases RAM usage.
+            If True, enables flux conservation through Jacobian calculation.
+            Note that this increases RAM usage.
 
         Notes
         -----
@@ -156,11 +160,11 @@ class Reproject:
 
         The coordinate grid is stored as a tuple of tensors (batch, y_grid, x_grid), where
         each element has the same shape as the target image.
+
         Examples
         --------
         >>> # Initialize the dfreproject object
         >>> reproject = Reproject(source_hdus, target_wcs)
-
         """
         # Set device
         if device is None:
@@ -185,18 +189,17 @@ class Reproject:
 
     def _prepare_source_images(self, source_hdus: List[PrimaryHDU]) -> torch.Tensor:
         """
-        Prepare batch of source images as a single tensor
-
+        Prepare batch of source images as a single tensor.
 
         Parameters
         ----------
         source_hdus : List[PrimaryHDU]
-            List of HDUs containing the data and the header information for the source image
+            List of HDUs containing the data and the header information for the source image.
 
         Returns
         -------
         source_image : torch.Tensor
-            Stack of source image tensors
+            Stack of source image tensors.
         """
         try:
             source_images = []
@@ -222,20 +225,19 @@ class Reproject:
 
     def _extract_wcs_params(self, wcs: WCS) -> dict:
         """
-        Extract key WCS parameters into a dictionary for efficient tensor operations
+        Extract key WCS parameters into a dictionary for efficient tensor operations.
 
-        Returns a dictionary with pre-computed tensor parameters
+        Returns a dictionary with pre-computed tensor parameters.
 
         Parameters
         ----------
         wcs : WCS
-            WCS information
+            WCS information.
 
         Returns
         -------
         wcs_params : dict
-            WCS parameters
-
+            WCS parameters.
         """
         return {
             "crpix": torch.tensor(
@@ -257,12 +259,13 @@ class Reproject:
         self, source_hdus: Union[List[PrimaryHDU], List[TensorHDU]]
     ) -> List[dict]:
         """
-        Prepare batch of WCS parameters
+        Prepare batch of WCS parameters.
 
         Parameters
         ----------
         source_hdus : List[PrimaryHDU]
-            List of HDUs containing the data and the header information for the source image
+            List of HDUs containing the data and the header information for the
+            source image.
 
         Returns
         -------
@@ -275,12 +278,12 @@ class Reproject:
         self, shape_out: Tuple[int, int]
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        Create a batched target grid matching the number of source images
+        Create a batched target grid matching the number of source images.
 
         Parameters
         ----------
         shape_out : Tuple[int, int]
-            Shape of the output image
+            Shape of the output image.
         """
         B = len(self.batch_source_images)
         H, W = shape_out
@@ -304,25 +307,26 @@ class Reproject:
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Calculate sky coordinates.
+
         There are four primary steps:
         1. Apply shift
         2. Apply SIP distortion
         3. Apply CD matrix
         4. Apply transformation to celestial coordinates uing the Gnomonic Projection
 
-        These steps use the target wcs parameters
+        These steps use the target wcs parameters.
 
         Parameters
         ----------
         x_grid : torch.Tensor, optional
-            Batch of x-coordinates. If None, uses target grid x-coordinates
+            Batch of x-coordinates. If None, uses target grid x-coordinates.
         y_grid : torch.Tensor, optional
-            Batch of y-coordinates. If None, uses target grid y-coordinates
+            Batch of y-coordinates. If None, uses target grid y-coordinates.
 
         Returns
         -------
         tuple
-            Batched RA and Dec coordinates
+            Batched RA and Dec coordinates.
         """
 
         if x_grid is None or y_grid is None:
@@ -412,12 +416,13 @@ class Reproject:
         """
         Calculate source image pixel coordinates corresponding to each target image pixel.
 
-        This function repeats the same steps in self.calculate_skyCoords() except in the opposite order and with the source coordinate wcs.
+        This function repeats the same steps in self.calculate_skyCoords()
+        except in the opposite order and with the source coordinate wcs.
 
         Returns
         -------
         torch.Tensor
-            Batch of source image pixel coordinates
+            Batch of source image pixel coordinates.
         """
         # Get batch of sky coordinates
         batch_ra, batch_dec = self.calculate_skyCoords()
@@ -553,6 +558,7 @@ class Reproject:
     def calculate_jacobian_determinant_sparse(self, downsample_factor=4):
         """
         Calculate Jacobian determinant using sparse sampling + interpolation.
+
         Much faster for large grids since WCS transformations are smooth.
         Memory optimized with explicit cleanup and torch.no_grad().
         """
@@ -697,14 +703,13 @@ class Reproject:
            together, and the interpolated image is divided by the interpolated ones
            tensor (footprint) to correct for any flux density spreading during interpolation.
         2. Jacobian correction for full flux conservation: Multiply the footprint-corrected flux
-            by the determinant of the Jacobian to handle changes in area during the reprojection
+           by the determinant of the Jacobian to handle changes in area during the reprojection
 
-        The Jacobian correction can be circumvented if you set conserve_flux=False. However, the default behavior is to
-        include this.
+        The Jacobian correction can be circumvented if you set
+        conserve_flux=False. However, the default behavior is to include this.
 
         Areas in the target image that map outside the source image boundaries
         will be filled with zeros (using 'zeros' padding_mode).
-
         """
         # Get source coordinates
         x_source, y_source = self.calculate_sourceCoords()
@@ -807,12 +812,14 @@ def calculate_reprojection(
         If True, enables autograd for PyTorch tensors.
 
     conserve_flux: bool, optional
-        if True, enables flux conservation through Jacobian calculation. Note that this increases RAM usage.
+        if True, enables flux conservation through Jacobian calculation. Note
+        that this increases RAM usage.
 
     Returns
     -------
     numpy.ndarray or torch.Tensor
-        The reprojected image as a numpy ndarray (default) or PyTorch tensor if requires_grad=True.
+        The reprojected image as a numpy ndarray (default) or PyTorch tensor if
+        requires_grad=True.
 
     Notes
     -----
@@ -822,8 +829,8 @@ def calculate_reprojection(
     - Converts data to float64 for processing
     - Converts Header to WCS if needed
 
-    To save the result as a FITS file, convert the tensor
-    back to a NumPy array and create a new FITS HDU with the target WCS header.
+    To save the result as a FITS file, convert the tensor back to a NumPy array
+    and create a new FITS HDU with the target WCS header.
 
     Examples
     --------

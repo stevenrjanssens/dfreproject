@@ -7,12 +7,12 @@ logger = logging.getLogger(__name__)
 
 def get_device():
     """
-    Utility function to get the currently available PyTorch device
+    Utility function to get the currently available PyTorch device.
 
     Returns
     -------
     torch.device
-        Available torch device (either cuda or cpu)
+        Available torch device (either cuda or cpu).
     """
     try:
         # Try to get CUDA device count to check if CUDA is properly initialized
