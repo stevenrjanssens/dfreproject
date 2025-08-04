@@ -118,7 +118,7 @@ class Reproject:
         device: str = None,
         num_threads: int = None,
         requires_grad: bool = False,
-        conserve_flux: bool = True,
+        compute_jacobian: bool = True,
     ):
         """
         Initialize a dfreproject operation between source and target image frames.
@@ -147,7 +147,7 @@ class Reproject:
         num_threads: int
             Number of threads to use on CPU.
 
-        conserve_flux: bool, optional
+        compute_jacobian: bool, optional
             If True, enables flux conservation through Jacobian calculation.
             Note that this increases RAM usage.
 
@@ -185,7 +185,7 @@ class Reproject:
         self.target_wcs = target_wcs
         # Define target grid
         self.target_grid = self._create_batch_target_grid(shape_out)
-        self.conserve_flux = conserve_flux
+        self.compute_jacobian = compute_jacobian
 
     def _prepare_source_images(self, source_hdus: List[PrimaryHDU]) -> torch.Tensor:
         """
@@ -663,7 +663,7 @@ class Reproject:
            by the determinant of the Jacobian to handle changes in area during the reprojection
 
         The Jacobian correction can be circumvented if you set
-        conserve_flux=False. However, the default behavior is to include this.
+        compute_jacobian=False. However, the default behavior is to include this.
 
         Areas in the target image that map outside the source image boundaries
         will be filled with zeros (using 'zeros' padding_mode).
@@ -695,7 +695,7 @@ class Reproject:
                 combined_result[:, 0].squeeze()[valid_pixels]
                 / combined_result[:, 1].squeeze()[valid_pixels]
             )
-            if self.conserve_flux:  # Include Jacobian determinant computation
+            if self.compute_jacobian:  # Include Jacobian determinant computation
                 x_grid, y_grid = self.target_grid
                 jacobian_det = self.compute_sip_jacobian(self.target_wcs, x_grid, y_grid)
                 result[valid_pixels] = result[valid_pixels] * jacobian_det[valid_pixels]
@@ -723,7 +723,7 @@ def calculate_reprojection(
     device: str = None,
     num_threads: int = None,
     requires_grad: bool = False,
-    conserve_flux: bool = True,
+    compute_jacobian: bool = True,
 ):
     """
     Reproject an astronomical image from a source WCS to a target WCS.
@@ -767,9 +767,11 @@ def calculate_reprojection(
     requires_grad: bool, optional
         If True, enables autograd for PyTorch tensors.
 
-    conserve_flux: bool, optional
+    compute_jacobian: bool, optional
         If True, enables flux conservation through Jacobian calculation. Note
-        that this increases RAM usage.
+        that this slightly increases RAM usage.
+        By default, this is set to True.
+        If there is no SIP distortion, users can set this to False.
 
     Returns
     -------
@@ -853,7 +855,7 @@ def calculate_reprojection(
         device=device,
         num_threads=num_threads,
         requires_grad=requires_grad,
-        conserve_flux=conserve_flux,
+        compute_jacobian=compute_jacobian,
     )
     order = validate_interpolation_order(order)
 

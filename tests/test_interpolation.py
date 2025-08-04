@@ -28,7 +28,7 @@ class TestInterpolationIntegration:
         from dfreproject.reproject import Reproject
 
         # Create actual instance
-        reproject = Reproject([source_hdu], WCS(target_hdu.header, relax=True), shape_out=target_hdu.data.shape, conserve_flux=True)
+        reproject = Reproject([source_hdu], WCS(target_hdu.header, relax=True), shape_out=target_hdu.data.shape, compute_jacobian=True)
 
         # Set device if needed
         if hasattr(reproject, 'set_device'):
