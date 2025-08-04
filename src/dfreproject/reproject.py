@@ -555,7 +555,7 @@ class Reproject:
         del batch_ra, batch_dec
         return batch_x_pixel, batch_y_pixel
 
-    def calculate_jacobian_determinant_sparse(self, downsample_factor=4):
+    def calculate_jacobian_determinant_sparse(self, downsample_factor=2):
         """
         Calculate Jacobian determinant using sparse sampling + interpolation.
 
