@@ -118,7 +118,7 @@ class Reproject:
         device: str = None,
         num_threads: int = None,
         requires_grad: bool = False,
-        conserve_flux: bool = False,
+        conserve_flux: bool = True,
     ):
         """
         Initialize a dfreproject operation between source and target image frames.
@@ -767,7 +767,7 @@ def calculate_reprojection(
     device: str = None,
     num_threads: int = None,
     requires_grad: bool = False,
-    conserve_flux: bool = False,
+    conserve_flux: bool = True,
 ):
     """
     Reproject an astronomical image from a source WCS to a target WCS.
@@ -812,7 +812,7 @@ def calculate_reprojection(
         If True, enables autograd for PyTorch tensors.
 
     conserve_flux: bool, optional
-        if True, enables flux conservation through Jacobian calculation. Note
+        If True, enables flux conservation through Jacobian calculation. Note
         that this increases RAM usage.
 
     Returns
