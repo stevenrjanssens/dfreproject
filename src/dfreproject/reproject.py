@@ -866,7 +866,7 @@ def calculate_reprojection(
             if isinstance(wcs_or_header, Header):
                 header = wcs_or_header
             elif isinstance(wcs_or_header, WCS):
-                header = wcs_or_header.to_header()
+                header = wcs_or_header.to_header(relax=True)
             else:
                 raise TypeError("Expected WCS or Header in tuple.")
             if requires_grad:
