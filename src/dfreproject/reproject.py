@@ -555,7 +555,7 @@ class Reproject:
         del batch_ra, batch_dec
         return batch_x_pixel, batch_y_pixel
 
-    def calculate_jacobian_determinant_sparse(self, downsample_factor=2):
+    def calculate_jacobian_determinant_sparse(self, downsample_factor=4):
         """
         Calculate Jacobian determinant using sparse sampling + interpolation.
 
@@ -564,7 +564,7 @@ class Reproject:
         """
         # Disable gradient computation for memory efficiency
         with torch.no_grad():
-            eps = 1e-4
+            eps = 1e-2
             target_y_orig, target_x_orig = self.target_grid
             orig_shape = target_y_orig.shape
 
