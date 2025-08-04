@@ -767,7 +767,7 @@ def calculate_reprojection(
     device: str = None,
     num_threads: int = None,
     requires_grad: bool = False,
-    converve_flux: bool = False,
+    conserve_flux: bool = False,
 ):
     """
     Reproject an astronomical image from a source WCS to a target WCS.
@@ -897,7 +897,7 @@ def calculate_reprojection(
         device=device,
         num_threads=num_threads,
         requires_grad=requires_grad,
-        conserve_flux=converve_flux,
+        conserve_flux=conserve_flux,
     )
     order = validate_interpolation_order(order)
 
