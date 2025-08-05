@@ -626,13 +626,11 @@ class Reproject:
         Interpolate the source image at the calculated source coordinates with flux conservation.
 
         This method performs the actual pixel resampling needed for dfreproject
-        while preserving the total flux (photometric accuracy). It implements a
-        footprint-based approach similar to that used in reproject_interp from the
-        Astropy package.
+        while preserving the total flux (photometric accuracy) by using a footprint correction and the Jacobian of the transformation.
 
         The method uses a combined tensor approach for computational efficiency,
         performing both image resampling and footprint tracking in a single operation.
-        Total flux is conserved locally (via footprint correction).
+        Total flux is conserved locally (via footprint correction and the Jacobian SIP calculation).
 
         Parameters
         ----------

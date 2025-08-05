@@ -11,11 +11,12 @@ A high-performance Python package for reprojecting astronomical images between d
 The idea behind this package was to make a stripped down version of the `reproject` package affiliated with astropy in order to reduce computational time.
 We achieve approximately 20X faster computations with this package using the GPU and 10X using the CPU for images taken by the Dragonfly Telephoto Array. Take a look at the demos for an example.
 We note that the only projection we currently support is the Tangential Gnomonic projection which is the most popular in optical astronomy. 
-If you have need for this package to work with another projection geometry, please open a GitHub ticket.
+If you have need for this package to work with another projection geometry, please open a GitHub issue.
 
 ## Features
 
 - Fast reprojection of astronomical images between different WCS frames
+- Flux conservation is the default
 - Support for Simple Imaging Polynomial (SIP) distortion correction
 - GPU acceleration using PyTorch
 - Multiple interpolation methods (nearest neighbor, bilinear, bicubic)
@@ -83,11 +84,23 @@ output_hdu.writeto('reprojected_image.fits', overwrite=True)
 
 The arguments for `calculate_reprojection` are the same as for the standard reprojection options in the reproject package
 such as `reproject_interp`, `reproject_adaptive`, or `reproject_exact`.
+
+Comparatively, flux conservation is the default behavior for `dfreproject`. Flux conservation is calculated in two manners:
+1. Local flux density conservation: The image and a "ones" tensor are interpolated
+    together, and the interpolated image is divided by the interpolated ones
+    tensor (footprint) to correct for any flux density spreading during interpolation.
+2. Jacobian correction for full flux conservation: Multiply the footprint-corrected flux
+   by the determinant of the Jacobian to handle changes in area during the reprojection
+
+If the transformation between one coordinate system and another is truly linear (i.e., there are no distortions such as SIP distortions), then the flux density convervation computed with the footprint is sufficient to conserve flux locally. If this is the case, then the user can set `compute_jacobian=False`. However, this only achieves very modest gains in computatoin time; therefore, we suggest users leave this feature on.
+
+<!--
 Therefore, it can be directly swapped for one of these by simply importing it with `from dfreproject import calculate_reprojection` 
 and then using `calculate_reproject` instead of `reproject_interp`. 
 The default flux conservation (`compute_jacobian=True`) includes changes in pixel's shape and most closely resembles 
 `reproject_adapt` in `reproject`. By setting `compute_jacobian=False`, 
 the flux calculations most closely mimics those of `reproject_interp`.
+-->
 
 
 
@@ -118,7 +131,7 @@ output_hdu.header.update(target_wcs.to_header())
 output_hdu.writeto('reprojected_image.fits', overwrite=True)
 ```
 
-The `calculate_reprojection`` function will internally handle all the translation so that   the inputs are properly handled.
+The `calculate_reprojection` function will internally handle all the translation so that   the inputs are properly handled.
 
 
 
