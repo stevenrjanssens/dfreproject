@@ -10,7 +10,7 @@ A high-performance Python package for reprojecting astronomical images between d
 
 The idea behind this package was to make a stripped down version of the `reproject` package affiliated with astropy in order to reduce computational time.
 We achieve approximately 20X faster computations with this package using the GPU and 10X using the CPU for images taken by the Dragonfly Telephoto Array. Take a look at the demos for an example.
-We note that the only projection we currently support is the Tangential Gnomonic projection which is the most popular in optical astronomy. 
+We note that the only projection we currently support is the Tangential Gnomonic projection which is the most popular in optical astronomy.
 If you have need for this package to work with another projection geometry, please open a GitHub issue.
 
 ## Features
@@ -26,7 +26,7 @@ If you have need for this package to work with another projection geometry, plea
 
 ### Using PyPi
 
-If you want to install using PyPi (which is certainly the easiest way), you can simply run 
+If you want to install using PyPi (which is certainly the easiest way), you can simply run
 
 ```bash
 pip install dfreproject
@@ -82,30 +82,15 @@ output_hdu.header.update(target_wcs.to_header())
 output_hdu.writeto('reprojected_image.fits', overwrite=True)
 ```
 
-The arguments for `calculate_reprojection` are the same as for the standard reprojection options in the reproject package
-such as `reproject_interp`, `reproject_adaptive`, or `reproject_exact`.
+The arguments for `calculate_reprojection` are the same as for the standard reprojection options in the reproject package, i.e. `reproject_interp`, `reproject_adaptive`, or `reproject_exact`.
 
-Comparatively, flux conservation is the default behavior for `dfreproject`. Flux conservation is calculated in two manners:
-1. Local flux density conservation: The image and a "ones" tensor are interpolated
-    together, and the interpolated image is divided by the interpolated ones
-    tensor (footprint) to correct for any flux density spreading during interpolation.
-2. Jacobian correction for full flux conservation: Multiply the footprint-corrected flux
-   by the determinant of the Jacobian to handle changes in area during the reprojection
+Comparatively, flux conservation is the default behavior for `dfreproject`. Two options are available for flux conservation:
+1. Local flux density conservation: The image and a "ones" tensor are interpolated together, and the interpolated image is divided by the interpolated ones tensor (footprint) to correct for any flux density spreading during interpolation.
+2. Jacobian correction for full flux conservation: Multiply the footprint-corrected flux by the determinant of the Jacobian to handle changes in area during the reprojection.
 
-If the transformation between one coordinate system and another is truly linear (i.e., there are no distortions such as SIP distortions), then the flux density convervation computed with the footprint is sufficient to conserve flux locally. If this is the case, then the user can set `compute_jacobian=False`. However, this only achieves very modest gains in computatoin time; therefore, we suggest users leave this feature on.
+Local flux density conservation always takes place. If the transformation between one coordinate system and another is truly linear (i.e., there are no distortions such as SIP distortions), then the local flux density convervation computed with the footprint is sufficient. If this is the case, then the user can set `compute_jacobian=False`. However, this only achieves very modest gains in computation time so we suggest users leave this feature on.
 
-<!--
-Therefore, it can be directly swapped for one of these by simply importing it with `from dfreproject import calculate_reprojection` 
-and then using `calculate_reproject` instead of `reproject_interp`. 
-The default flux conservation (`compute_jacobian=True`) includes changes in pixel's shape and most closely resembles 
-`reproject_adapt` in `reproject`. By setting `compute_jacobian=False`, 
-the flux calculations most closely mimics those of `reproject_interp`.
--->
-
-
-
-
-In another scenario, it may be more advantageous to use an array of data and the header object that have already been loaded into memory (i.e. not in a file/hdu object). In that case, follow this example:
+In another scenario, it may be more advantageous to pass a tuple of a data array and a header object that have already been loaded into memory (i.e. not an HDU object). In that case, follow this example:
 
 ```python
 from astropy.io import fits
@@ -131,9 +116,7 @@ output_hdu.header.update(target_wcs.to_header())
 output_hdu.writeto('reprojected_image.fits', overwrite=True)
 ```
 
-The `calculate_reprojection` function will internally handle all the translation so that   the inputs are properly handled.
-
-
+The `calculate_reprojection` function will internally handle all the translation so that the inputs are properly handled.
 
 ## Demos and Examples
 
@@ -161,7 +144,6 @@ The documentation includes:
 - Tutorials and examples
 - Performance tips
 
-
 ## Running Tests
 The unit tests can be run using the following command:
 
@@ -170,7 +152,6 @@ pytest
 ```
 
 The default settings are in the `pytest.ini` file.
-
 
 ## Contributing
 
@@ -195,4 +176,4 @@ https://doi.org/10.5281/zenodo.15170605
 - Accelerated with PyTorch
 - Documentation aided by Claude.ai
 
-The License for all past and present versions is  the GPL-3.0. 
+The License for all past and present versions is the GPL-3.0.
