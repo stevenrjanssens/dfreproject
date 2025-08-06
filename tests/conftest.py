@@ -35,7 +35,7 @@ def source_fits_file(test_data_dir, simple_wcs):
     # Create the file
     filename = os.path.join(test_data_dir, "source.fits")
     create_test_fits_file(
-        wcs_header=simple_wcs.to_header(),
+        wcs_header=simple_wcs.to_header(relax=True),
         data=data,
         filename=filename
     )
@@ -43,7 +43,7 @@ def source_fits_file(test_data_dir, simple_wcs):
 
 
 @pytest.fixture(scope="session")
-def target_fits_file(test_data_dir, rotated_wcs):
+def target_fits_file(test_data_dir, sip_wcs):
     """Create a target FITS file for testing."""
     # Create a FITS file with target WCS but empty data
     import numpy as np
@@ -53,7 +53,7 @@ def target_fits_file(test_data_dir, rotated_wcs):
     # Create the file
     filename = os.path.join(test_data_dir, "target.fits")
     create_test_fits_file(
-        wcs_header=rotated_wcs.to_header(),
+        wcs_header=sip_wcs.to_header(relax=True),
         data=data,
         filename=filename
     )
