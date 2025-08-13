@@ -13,12 +13,12 @@ def get_sip_coeffs(
     Parameters:
     -----------
     wcs : astropy.wcs.WCS
-        WCS object potentially containing SIP distortion
+        WCS object potentially containing SIP distortion.
 
     Returns:
     --------
     dict:
-        Dictionary containing SIP coefficient matrices A, B, AP, BP and orders
+        Dictionary containing SIP coefficient matrices A, B, AP, BP and orders.
     """
     sip_coeffs = {}
 
@@ -58,16 +58,16 @@ def apply_sip_distortion(
     Parameters:
     -----------
     u, v : torch.Tensor
-        Intermediate pixel coordinates (before distortion)
+        Intermediate pixel coordinates (before distortion).
     sip_coeffs : Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
-        SIP coefficient matrices
+        SIP coefficient matrices.
     device : torch.device, optional
-        Device to place tensors on
+        Device to place tensors on.
 
     Returns:
     --------
     tuple:
-        (u', v') distorted coordinates
+        (u', v') distorted coordinates.
 
 
     # Convert to tensors if needed
@@ -120,16 +120,16 @@ def apply_inverse_sip_distortion(
     Parameters:
     -----------
     u, v : torch.Tensor
-        Distorted coordinates
+        Distorted coordinates.
     sip_coeffs : Tuple
-        SIP coefficient matrices
+        SIP coefficient matrices.
     device : torch.device, optional
-        Device to place tensors on
+        Device to place tensors on.
 
     Returns:
     --------
     tuple:
-        (u', v') undistorted coordinates
+        (u', v') undistorted coordinates.
     """
     if sip_coeffs is None:
         return u, v
@@ -189,20 +189,20 @@ def iterative_inverse_sip(
     Parameters:
     -----------
     u, v : torch.Tensor
-        Distorted coordinates
+        Distorted coordinates.
     sip_coeffs : Tuple
-        SIP coefficient matrices
+        SIP coefficient matrices.
     device : torch.device, optional
-        Device to place tensors on
+        Device to place tensors on.
     max_iter : int, optional
-        Maximum number of iterations
+        Maximum number of iterations.
     tol : float, optional
-        Convergence tolerance
+        Convergence tolerance.
 
     Returns:
     --------
     tuple:
-        (u', v') undistorted coordinates
+        (u', v') undistorted coordinates.
     """
     # Convert to tensors if needed
     if not isinstance(u, torch.Tensor):

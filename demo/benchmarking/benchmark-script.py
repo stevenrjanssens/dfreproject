@@ -138,12 +138,12 @@ def benchmark_dfreproject(input_array, input_wcs, output_wcs, output_shape, inte
 
     start_time = time.time()
     output_array = dfreproject.calculate_reprojection(
-        hdu, output_wcs, shape_out=output_shape, order=interp_mode, device=device)
+        hdu, output_wcs, shape_out=output_shape, order=interp_mode, converve_flux=True, device=device)
     end_time = time.time()
     return end_time - start_time
 
 
-def run_benchmarks(image_sizes, interpolation_methods, num_trials=3, device='cpu'):
+def run_benchmarks(image_sizes, interpolation_methods, num_trials=2, device='cpu'):
     """
     Run benchmarks for both packages on all image sizes and interpolation methods.
 
@@ -368,7 +368,7 @@ def create_visualizations(df, device):
 
 
 def main():
-    device = 'cpu'
+    device = 'cuda'
     # Image sizes to benchmark
     # image_sizes = [
     #     #(256, 256),
@@ -377,7 +377,7 @@ def main():
     #     (4000, 6000)
     # ]
     aspect_ratios = [1.0, 1.2, 1.5]
-    num_sizes = 50
+    num_sizes = 1
 
     must_have_sizes = [(256, 256), (512, 512), (1024, 1024), (2048, 2048), (4000, 6000)]
 

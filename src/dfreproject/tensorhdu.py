@@ -24,7 +24,7 @@ class TensorHDU(PrimaryHDU):
             The data in the HDU.
 
         header : `~astropy.io.fits.Header`, optional
-            The header to be used (as a template).  If ``header`` is `None`, a
+            The header to be used (as a template). If ``header`` is `None`, a
             minimal header will be provided.
 
         do_not_scale_image_data : bool, optional
@@ -70,10 +70,10 @@ class TensorHDU(PrimaryHDU):
         """
         Returns the image data as a torch.Tensor.
         """
-        
+
         return self.__dict__.get("tensor", None)
 
-    
+
     @tensor.setter
     def tensor(self, data):
         # Accept torch.Tensor or numpy array, but always store as torch.Tensor
@@ -90,7 +90,7 @@ class TensorHDU(PrimaryHDU):
             if data.dtype != torch.float64:
                 data = data.to(torch.float64)
 
-                
+
 
         self.__dict__["tensor"] = data
 

@@ -115,7 +115,7 @@ def create_wcs_with_sip(degree=3):
                 header[f'AP_{i}_{j}'] = -0.001 * i * j
                 header[f'BP_{i}_{j}'] = 0.001 * i * j
 
-    return WCS(header)
+    return WCS(header, relax=True)
 
 
 @pytest.fixture(scope="session")
