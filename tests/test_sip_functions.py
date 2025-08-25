@@ -2,13 +2,96 @@ import pytest
 import torch
 import numpy as np
 
-# Import the functions to test - adjust imports as needed
+from types import SimpleNamespace
+
 from dfreproject.sip import (
     apply_sip_distortion,
     apply_inverse_sip_distortion,
-    iterative_inverse_sip
+    iterative_inverse_sip,
+    get_sip_coeffs
 )
 
+
+@pytest.mark.unit
+class TestGetSIPCoeffs:
+    """Tests for get_sip_coeffs function."""
+
+    def test_no_sip_returns_none(self):
+        """If wcs has no SIP attribute, should return None."""
+        wcs = SimpleNamespace(sip=None)
+        result = get_sip_coeffs(wcs)
+        assert result is None
+
+    def test_sip_with_no_inverse(self):
+        """SIP present but no inverse coefficients."""
+        sip = SimpleNamespace(
+            a_order=2, b_order=2,
+            a=np.ones((3, 3)), b=np.ones((3, 3)),
+            ap_order=0, bp_order=0
+        )
+        wcs = SimpleNamespace(sip=sip)
+        result = get_sip_coeffs(wcs)
+
+        assert result["a_order"] == 2
+        assert result["b_order"] == 2
+        assert np.array_equal(result["a"], sip.a)
+        assert np.array_equal(result["b"], sip.b)
+        assert result["ap_order"] == 0
+        assert result["bp_order"] == 0
+        assert "ap" not in result
+        assert "bp" not in result
+
+    def test_sip_with_inverse(self):
+        """SIP present with both inverse coefficients."""
+        sip = SimpleNamespace(
+            a_order=2, b_order=2,
+            a=np.ones((3, 3)), b=np.ones((3, 3)),
+            ap_order=2, bp_order=2,
+            ap=np.full((3, 3), 2.0), bp=np.full((3, 3), 3.0)
+        )
+        wcs = SimpleNamespace(sip=sip)
+        result = get_sip_coeffs(wcs)
+
+        assert result["a_order"] == 2
+        assert result["b_order"] == 2
+        assert np.array_equal(result["a"], sip.a)
+        assert np.array_equal(result["b"], sip.b)
+        assert result["ap_order"] == 2
+        assert result["bp_order"] == 2
+        assert np.array_equal(result["ap"], sip.ap)
+        assert np.array_equal(result["bp"], sip.bp)
+
+    def test_sip_with_only_ap(self):
+        """SIP present with only ap inverse coefficients."""
+        sip = SimpleNamespace(
+            a_order=2, b_order=2,
+            a=np.ones((3, 3)), b=np.ones((3, 3)),
+            ap_order=2, ap=np.full((3, 3), 4.0),
+            bp_order=0
+        )
+        wcs = SimpleNamespace(sip=sip)
+        result = get_sip_coeffs(wcs)
+
+        assert result["ap_order"] == 2
+        assert np.array_equal(result["ap"], sip.ap)
+        assert result["bp_order"] == 0
+        assert "bp" not in result
+
+    def test_sip_with_only_bp(self):
+        """SIP present with only bp inverse coefficients."""
+        sip = SimpleNamespace(
+            a_order=2, b_order=2,
+            a=np.ones((3, 3)), b=np.ones((3, 3)),
+            ap_order=0,
+            bp_order=2, bp=np.full((3, 3), 5.0)
+        )
+        wcs = SimpleNamespace(sip=sip)
+        result = get_sip_coeffs(wcs)
+
+        assert result["bp_order"] == 2
+        assert np.array_equal(result["bp"], sip.bp)
+        assert result["ap_order"] == 0
+        assert "ap" not in result
 
 @pytest.mark.unit
 class TestSIPFunctions:
