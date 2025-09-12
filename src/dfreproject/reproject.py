@@ -598,6 +598,8 @@ class Reproject:
         1. Local flux density conservation: The image and a "ones" tensor are interpolated
            together, and the interpolated image is divided by the interpolated ones
            tensor (footprint) to correct for any flux density spreading during interpolation.
+           This is important when for pixels at the edge of the input image when mapped to the output
+           image in case the input image only partially fills the output pixel.
         2. Jacobian correction for full flux conservation: Multiply the footprint-corrected flux
            by the determinant of the Jacobian to handle changes in area during the reprojection
 
@@ -605,7 +607,7 @@ class Reproject:
         compute_jacobian=False. However, the default behavior is to include this.
 
         Areas in the target image that map outside the source image boundaries
-        will be filled with zeros (using 'zeros' padding_mode).
+        will be filled with NaNs.
         """
         # Get source coordinates
         x_source, y_source = self.calculate_sourceCoords()
@@ -687,15 +689,14 @@ def calculate_reprojection(
 
     Parameters
     ----------
-    source_hdus : Union[
-        PrimaryHDU,
-        TensorHDU,
-        Tuple[np.ndarray, Union[WCS, Header]],
-        Tuple[torch.Tensor, Union[WCS, Header]],
-        List[Union[PrimaryHDU, Tuple[np.ndarray, Union[WCS, Header]]]]
-    ]
-        The source image(s) to be reprojected, which can be a PrimaryHDU, TensorHDU,
-        a tuple of (data, WCS/Header), or a list of such items.
+
+    source_hdus : PrimaryHDU, TensorHDU, tuple, or list
+        The source image(s) to be reprojected. Can be:
+            - A PrimaryHDU
+            - A TensorHDU
+            - A tuple of (np.ndarray or torch.Tensor, WCS or Header)
+            - A list of any of the above
+
 
     target_wcs : Union[WCS, Header]
         WCS information for the target. If a Header is passed it will be converted to WCS.
