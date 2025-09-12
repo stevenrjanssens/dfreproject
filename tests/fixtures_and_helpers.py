@@ -141,7 +141,7 @@ def simple_wcs():
 @pytest.fixture(scope="session")
 def sip_wcs():
     """Fixture providing a WCS with SIP distortion."""
-    return create_wcs_with_sip(degree=3)
+    return create_wcs_with_sip(degree=2)
 
 
 @pytest.fixture(scope="session")

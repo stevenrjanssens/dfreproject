@@ -8,7 +8,7 @@ from astropy.wcs import WCS
 
 from .sip import apply_inverse_sip_distortion, apply_sip_distortion, get_sip_coeffs
 from .tensorhdu import TensorHDU
-from .utils import get_device
+from .utils import get_device, gradient2d
 
 logger = logging.getLogger(__name__)
 
@@ -561,71 +561,6 @@ class Reproject:
         del batch_ra, batch_dec
         return batch_x_pixel, batch_y_pixel
 
-    def compute_sip_jacobian(self, wcs: WCS, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        """
-        Compute the Jacobian matrix of a SIP-corrected WCS at given pixel coordinates.
-
-        Parameters
-        ----------
-        wcs : astropy.wcs.WCS
-            The WCS object (must have .sip set)
-        x, y : torch.Tensor
-            Pixel coordinates (in image frame)
-
-        Returns
-        -------
-        jacobian : torch.Tensor
-            Tensor of shape (..., 2, 2) with Jacobians at each point.
-        """
-        if wcs.sip is None:
-            return torch.ones_like(x).squeeze()
-
-        # Shift to CRPIX
-        dx = x - wcs.sip.crpix[0]
-        dy = y - wcs.sip.crpix[1]
-
-        # Ensure dx, dy have same shape
-        dx = dx.to(torch.float64)
-        dy = dy.to(torch.float64)
-
-        shape = dx.shape
-        d_dx_dx = torch.zeros_like(dx)
-        d_dx_dy = torch.zeros_like(dy)
-        d_dy_dx = torch.zeros_like(dx)
-        d_dy_dy = torch.zeros_like(dy)
-        for (i, j), coeff in np.ndenumerate(wcs.sip.a):
-            if i > 0:
-                d_dx_dx += i * coeff * (dx ** (i - 1)) * (dy ** j)
-            if j > 0:
-                d_dx_dy += j * coeff * (dx ** i) * (dy ** (j - 1))
-
-        for (i, j), coeff in np.ndenumerate(wcs.sip.b):
-            if i > 0:
-                d_dy_dx += i * coeff * (dx ** (i - 1)) * (dy ** j)
-            if j > 0:
-                d_dy_dy += j * coeff * (dx ** i) * (dy ** (j - 1))
-
-        # Add identity to model "1 + dD/dx"
-        J_sip_00 = 1 + d_dx_dx
-        J_sip_01 = d_dx_dy
-        J_sip_10 = d_dy_dx
-        J_sip_11 = 1 + d_dy_dy
-
-        # Stack into Jacobian matrix (..., 2, 2)
-        J_sip = torch.stack([
-            torch.stack([J_sip_00, J_sip_01], dim=-1),
-            torch.stack([J_sip_10, J_sip_11], dim=-1)
-        ], dim=-2)
-
-        # PC matrix
-        PC = torch.tensor(wcs.wcs.get_pc(), dtype=torch.float64, device=x.device)
-
-        # Broadcast and apply linear transformation: J_total = PC @ J_sip
-        J_total = torch.matmul(PC[None, :, :], J_sip.reshape(-1, 2, 2))
-        J_total = J_total.reshape(*shape, 2, 2)
-        detJ = torch.linalg.det(J_total).squeeze()
-        return detJ
-
 
     def interpolate_source_image(self, interpolation_mode="bilinear") -> torch.Tensor:
         """
@@ -693,6 +628,7 @@ class Reproject:
         # Apply footprint correction only where footprint is significant
         valid_pixels = combined_result[:, 1].squeeze() > EPSILON
         # Apply footprint correction only where footprint is significant
+        print(self.conserve_flux, self.compute_jacobian)
         if torch.any(valid_pixels):
             if self.conserve_flux:
             # Normalize by the footprint where valid
@@ -701,9 +637,17 @@ class Reproject:
                     / combined_result[:, 1].squeeze()[valid_pixels]
                 )
                 if self.compute_jacobian:  # Include Jacobian determinant computation
-                    x_grid, y_grid = self.target_grid
-                    jacobian_det = self.compute_sip_jacobian(self.target_wcs, x_grid, y_grid)
-                    result[valid_pixels] = result[valid_pixels] * jacobian_det[valid_pixels]
+                    dy_x, dx_x = gradient2d(x_source)  # dx_x = ∂x_in/∂x_out, dy_x = ∂x_in/∂y_out
+                    dy_y, dx_y = gradient2d(y_source)  # dx_y = ∂y_in/∂x_out, dy_y = ∂y_in/∂y_out
+                    # Build Jacobian components
+                    Jxx = dx_x  # ∂x_in / ∂x_out
+                    Jyx = dx_y  # ∂y_in / ∂x_out
+                    Jxy = dy_x  # ∂x_in / ∂y_out
+                    Jyy = dy_y  # ∂y_in / ∂y_out
+                    # Determinant
+                    jacobian_det = Jxx * Jyy - Jxy * Jyx
+                    # Apply scaling
+                    result = torch.where(valid_pixels, result * jacobian_det.squeeze(0), result)
             else:  # Do not apply flux conservation
                 result[valid_pixels] = combined_result[:, 0].squeeze()[valid_pixels]
         else:

@@ -28,7 +28,7 @@ class TestInterpolationIntegration:
         from dfreproject.reproject import Reproject
 
         # Create actual instance
-        reproject = Reproject([source_hdu], WCS(target_hdu.header, relax=True), shape_out=target_hdu.data.shape, compute_jacobian=True)
+        reproject = Reproject([source_hdu], WCS(target_hdu.header, relax=True), shape_out=target_hdu.data.shape, compute_jacobian=True, conserve_flux=True)
 
         # Set device if needed
         if hasattr(reproject, 'set_device'):
@@ -41,19 +41,20 @@ class TestInterpolationIntegration:
         reproject = setup_real_projection
 
         # Get original flux
-        original_flux = reproject.batch_source_images[0].sum().item()
+        original_flux = np.nansum(reproject.batch_source_images[0])
 
         # Perform interpolation
         result = reproject.interpolate_source_image(interpolation_mode="bilinear")
 
         # Get interpolated flux
-        interpolated_flux = result.nan_to_num(0).sum().item()
+        interpolated_flux = np.nansum(result)
 
         # Flux should be approximately conserved
         # Allow some tolerance for edge effects and numerical precision
         # Actual tolerance may need adjustment based on your specific transformations
         err = abs(interpolated_flux - original_flux) / original_flux
-        assert 1-err < 0.2
+
+        assert err < 0.01
 
     def test_multiple_interpolation_modes(self, setup_real_projection):
         """Test that all interpolation modes produce valid results."""
