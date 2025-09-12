@@ -185,4 +185,30 @@ class TestCoordinateTransformations:
         assert torch.isfinite(ra).all()
         assert torch.isclose(dec, torch.tensor([[90.0]], device=device, dtype=torch.float64), atol=0.5)
 
+    def make_ra_wrap_wcs(self, naxis1=100, naxis2=100):
+        header = fits.Header()
+        header['NAXIS'] = 2
+        header['NAXIS1'] = naxis1
+        header['NAXIS2'] = naxis2
+        header['CTYPE1'] = 'RA---TAN'
+        header['CTYPE2'] = 'DEC--TAN'
+        header['CRVAL1'] = 359.5  # close to 360°/0°
+        header['CRVAL2'] = 0.0
+        header['CRPIX1'] = naxis1 / 2
+        header['CRPIX2'] = naxis2 / 2
+        header['CDELT1'] = -0.1
+        header['CDELT2'] = 0.1
+        return WCS(header)
 
+    def test_ra_wraparound(self, device):
+        wcs_wrap = self.make_ra_wrap_wcs()
+        transformer = Reproject([fits.PrimaryHDU(data=np.zeros((100, 100)))], wcs_wrap, shape_out=(100, 100))
+
+        x = torch.tensor([[50, 51]], dtype=torch.float64, device=device)
+        y = torch.tensor([[50, 50]], dtype=torch.float64, device=device)
+        ra, dec = transformer.calculate_skyCoords(x, y)
+
+        # Should correctly handle RA wrap
+        ra_vals = ra.cpu().numpy().flatten()
+        assert np.all(ra_vals >= 0) and np.all(ra_vals <= 360)
+        assert torch.isfinite(dec).all()
