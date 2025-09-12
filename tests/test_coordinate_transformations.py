@@ -157,3 +157,32 @@ class TestCoordinateTransformations:
         # Placeholder assertion - remove when implementing real test
         assert True
 
+    def make_polar_wcs(self, naxis1=100, naxis2=100, north_pole=True):
+        header = fits.Header()
+        header['NAXIS'] = 2
+        header['NAXIS1'] = naxis1
+        header['NAXIS2'] = naxis2
+        header['CTYPE1'] = 'RA---TAN'
+        header['CTYPE2'] = 'DEC--TAN'
+        header['CRVAL1'] = 0.0
+        header['CRVAL2'] = 90.0 if north_pole else -90.0  # pole
+        header['CRPIX1'] = naxis1 / 2
+        header['CRPIX2'] = naxis2 / 2
+        header['CDELT1'] = -0.1
+        header['CDELT2'] = 0.1
+        return WCS(header)
+
+    def test_polar_coordinates(self, device):
+        polar_wcs = self.make_polar_wcs()
+        transformer = Reproject([fits.PrimaryHDU(data=np.zeros((100, 100)))], polar_wcs, shape_out=(100, 100))
+
+        # pick pixel at center (near pole) and an offset pixel
+        x = torch.tensor([[50]], dtype=torch.float64, device=device)
+        y = torch.tensor([[50]], dtype=torch.float64, device=device)
+        ra, dec = transformer.calculate_skyCoords(x, y)
+
+        # Pole should be near Dec=90, RA arbitrary
+        assert torch.isfinite(ra).all()
+        assert torch.isclose(dec, torch.tensor([[90.0]], device=device, dtype=torch.float64), atol=0.5)
+
+
