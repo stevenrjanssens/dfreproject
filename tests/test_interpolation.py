@@ -53,6 +53,26 @@ class TestInterpolationIntegration:
 
         assert err < 0.01
 
+    def test_flux_conservation_lanczos(self, setup_real_projection):
+        """Test that flux is approximately conserved during interpolation using lanczos."""
+        reproject = setup_real_projection
+
+        # Get original flux
+        original_flux = np.nansum(reproject.batch_source_images[0].cpu())
+
+        # Perform interpolation
+        result = reproject.interpolate_source_image(interpolation_mode="lanczos")
+
+        # Get interpolated flux
+        interpolated_flux = np.nansum(result.cpu())
+
+        # Flux should be approximately conserved
+        # Allow some tolerance for edge effects and numerical precision
+        # Actual tolerance may need adjustment based on your specific transformations
+        err = abs(interpolated_flux - original_flux) / original_flux
+
+        assert err < 0.01
+
     def test_multiple_interpolation_modes(self, setup_real_projection):
         """Test that all interpolation modes produce valid results."""
         reproject = setup_real_projection

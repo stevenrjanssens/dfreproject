@@ -590,6 +590,7 @@ class Reproject:
             - 'nearest' : Nearest neighbor interpolation (no interpolation)
             - 'bilinear' : Bilinear interpolation (default)
             - 'bicubic' : Bicubic interpolation
+            - 'lanczos' : Lanczos interpolation
 
             These correspond to the modes available in torch.nn.functional.grid_sample.
 
@@ -717,7 +718,8 @@ def calculate_reprojection(
         Options:
         - 'nearest' : Nearest neighbor interpolation (fastest, default)
         - 'bilinear' : Bilinear interpolation (good balance of speed/quality)
-        - 'bicubic' : Bicubic interpolation (highest quality, slowest)
+        - 'bicubic' : Bicubic interpolation (high quality, slow)
+        - 'lanczos' : Lanczos 3-lobe interpolation (highest quality, slowest)
 
     device: str, optional
         Device to use for computations. Defaults to GPU if available, otherwise uses CPU.
