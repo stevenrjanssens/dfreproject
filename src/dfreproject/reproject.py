@@ -6,6 +6,7 @@ import torch
 from astropy.io.fits import Header, PrimaryHDU
 from astropy.wcs import WCS
 
+from .lanczos import lanczos_grid_sample
 from .sip import apply_inverse_sip_distortion, apply_sip_distortion, get_sip_coeffs
 from .tensorhdu import TensorHDU
 from .utils import get_device, gradient2d
@@ -13,7 +14,7 @@ from .utils import get_device, gradient2d
 logger = logging.getLogger(__name__)
 
 EPSILON = 1e-10
-VALID_ORDERS = ["bicubic", "bilinear", "nearest", "nearest-neighbors"]
+VALID_ORDERS = ["bicubic", "bilinear", "nearest", "nearest-neighbors", 'lanczos']
 
 
 def validate_interpolation_order(order: str) -> str:
@@ -84,12 +85,11 @@ def sincosd(angle_deg: torch.Tensor) -> torch.Tensor:
     return torch.sin(angle_rad), torch.cos(angle_rad)
 
 
-@torch.jit.script
 def interpolate_image(
     source_image: torch.Tensor, grid: torch.Tensor, interpolation_mode: str
 ) -> torch.Tensor:
     """
-    JIT-compiled image interpolation using grid_sample.
+    Image interpolation using grid_sample with LANCZOS support.
 
     Parameters
     ----------
@@ -98,15 +98,24 @@ def interpolate_image(
     grid : torch.Tensor
         Grid on which to interpolate.
     interpolation_mode: str
-        Interpolation mode to use.
+        Interpolation mode to use. Supports PyTorch's built-in modes
+        ('bilinear', 'bicubic', 'nearest') plus 'lanczos' for LANCZOS-3.
+
+    Returns
+    -------
+    torch.Tensor
+        Interpolated image.
     """
-    return torch.nn.functional.grid_sample(
-        source_image,
-        grid,
-        mode=interpolation_mode,
-        align_corners=True,
-        padding_mode="zeros",
-    )
+    if interpolation_mode == 'lanczos':
+        return lanczos_grid_sample(source_image, grid, padding_mode="zeros")
+    else:
+        return torch.nn.functional.grid_sample(
+            source_image,
+            grid,
+            mode=interpolation_mode,
+            align_corners=True,
+            padding_mode="zeros",
+        )
 
 
 class Reproject:
