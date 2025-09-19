@@ -638,7 +638,6 @@ class Reproject:
         # Apply footprint correction only where footprint is significant
         valid_pixels = combined_result[:, 1].squeeze() > EPSILON
         # Apply footprint correction only where footprint is significant
-        print(self.conserve_flux, self.compute_jacobian)
         if torch.any(valid_pixels):
             if self.conserve_flux:
             # Normalize by the footprint where valid
