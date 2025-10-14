@@ -17,6 +17,7 @@ EPSILON = 1e-10
 VALID_ORDERS = ["bicubic", "bilinear", "nearest", "nearest-neighbors", 'lanczos']
 
 
+
 def validate_interpolation_order(order: str) -> str:
     """
     Function to validate the requested interpolation order.
@@ -179,6 +180,7 @@ class Reproject:
         >>> # Initialize the dfreproject object
         >>> reproject = Reproject(source_hdus, target_wcs)
         """
+        
         # Set device
         if device is None:
             self.device = get_device()
@@ -196,8 +198,10 @@ class Reproject:
         self.batch_source_wcs_params = self._prepare_batch_wcs_params(source_hdus)
         self.target_wcs_params = self._extract_wcs_params(target_wcs)
         self.target_wcs = target_wcs
+        
         # Define target grid
         self.target_grid = self._create_batch_target_grid(shape_out)
+        
         # Define flux conservation booleans
         self.conserve_flux = conserve_flux
         self.compute_jacobian = compute_jacobian
@@ -302,19 +306,18 @@ class Reproject:
         """
         B = len(self.batch_source_images)
         H, W = shape_out
-
-        # Create meshgrid and repeat for batch
-        y_grid = (
-            torch.arange(H, dtype=torch.float64, device=self.device)
-            .view(1, -1, 1)
-            .repeat(B, 1, W)
-        )
-        x_grid = (
-            torch.arange(W, dtype=torch.float64, device=self.device)
-            .view(1, 1, -1)
-            .repeat(B, H, 1)
-        )
-
+        
+        # Create base grids once
+        y_base = torch.arange(H, dtype=torch.float64, device=self.device)
+        x_base = torch.arange(W, dtype=torch.float64, device=self.device)
+        
+        # Use broadcasting instead of repeat to save memory during creation
+        # expand() creates a view without allocating new memory
+        y_grid = y_base.view(1, -1, 1).expand(B, H, W)
+        x_grid = x_base.view(1, 1, -1).expand(B, H, W)
+        
+        # Only make contiguous copies if needed for operations
+        # Most operations work fine with non-contiguous tensors
         return y_grid, x_grid
 
     def calculate_skyCoords(
@@ -343,89 +346,99 @@ class Reproject:
         tuple
             Batched RA and Dec coordinates.
         """
-
+        
         if x_grid is None or y_grid is None:
             y_grid, x_grid = self.target_grid
         else:
-            # Ensure x and y are tensors on the correct device
             if not isinstance(x_grid, torch.Tensor):
                 x_grid = torch.tensor(x_grid, dtype=torch.float64, device=self.device)
             if not isinstance(y_grid, torch.Tensor):
                 y_grid = torch.tensor(y_grid, dtype=torch.float64, device=self.device)
-
-            # Ensure consistent batch dimensions
             if x_grid.dim() == 2:
                 x_grid = x_grid.unsqueeze(0)
             if y_grid.dim() == 2:
                 y_grid = y_grid.unsqueeze(0)
+        
         B, H, W = y_grid.shape
-
+        
         # Unpack target WCS parameters
         crpix = self.target_wcs_params["crpix"]
         crval = self.target_wcs_params["crval"]
         pc_matrix = self.target_wcs_params["pc_matrix"]
         cdelt = self.target_wcs_params["cdelt"]
         sip_coeffs = self.target_wcs_params["sip_coeffs"]
-
-        # Compute pixel offsets
+        
+        # Compute pixel offsets (in-place when possible)
         u = x_grid - (crpix[0] - 1)
         v = y_grid - (crpix[1] - 1)
-
+        
         # Apply SIP distortion if present
         if sip_coeffs is not None:
             u, v = apply_sip_distortion(u, v, sip_coeffs, self.device)
-
+        
         # Apply PC Matrix and CDELT
         CD_matrix = pc_matrix * cdelt
-        del pc_matrix, cdelt
-
-        # Batch matrix multiplication for scaling
-        # Reshape to [B, H*W, 2] for batch matrix multiplication
+        
+        # Optimize matrix multiplication
         pixel_offsets = torch.stack([u.reshape(B, -1), v.reshape(B, -1)], dim=-1)
-        transformed = torch.bmm(
-            pixel_offsets, CD_matrix.T.unsqueeze(0).expand(B, -1, -1)
-        )
-        del pixel_offsets, CD_matrix, u, v
+        del u, v  # Free immediately
+        
+        transformed = torch.bmm(pixel_offsets, CD_matrix.T.unsqueeze(0).expand(B, -1, -1))
+        del pixel_offsets, CD_matrix
+        
         x_scaled = transformed[:, :, 0].reshape(B, H, W)
         y_scaled = transformed[:, :, 1].reshape(B, H, W)
         del transformed
-        # Compute radial distance
-        r = torch.sqrt(x_scaled**2 + y_scaled**2)
-        r0 = torch.tensor(180.0 / torch.pi, device=self.device)
-
-        # Compute phi
+        
+        
+        # Compute radial distance (in-place operations)
+        r = torch.sqrt(x_scaled.pow(2).add_(y_scaled.pow(2)))  # More memory efficient
+        r0 = torch.tensor(180.0 / torch.pi)
+        
+        # Compute phi efficiently
         phi = torch.zeros_like(r)
-        non_zero_r = r != 0
-        phi[non_zero_r] = torch.rad2deg(
-            torch.atan2(-x_scaled[non_zero_r], y_scaled[non_zero_r])
-        )
+        non_zero_r = r > 0  # Avoid creating unnecessary boolean tensor
+        phi[non_zero_r] = torch.rad2deg(torch.atan2(-x_scaled[non_zero_r], y_scaled[non_zero_r]))
         del x_scaled, y_scaled, non_zero_r
-        # Convert to radians
+        
         phi_rad = torch.deg2rad(phi)
         del phi
-        theta_rad = torch.deg2rad(torch.rad2deg(torch.atan2(r0, r)))
-        del r0, r
-        ra0_rad = crval[0] * torch.pi / 180.0
-        dec0_rad = crval[1] * torch.pi / 180.0
-
-        sin_dec = torch.sin(theta_rad) * torch.sin(dec0_rad) + torch.cos(
-            theta_rad
-        ) * torch.cos(dec0_rad) * torch.cos(phi_rad)
+        
+        theta_rad = torch.atan2(r0, r)  # Direct computation without intermediate conversions
+        del r
+        
+        # Pre-compute trig values
+        ra0_rad = crval[0] * (torch.pi / 180.0)
+        dec0_rad = crval[1] * (torch.pi / 180.0)
+        
+        sin_theta = torch.sin(theta_rad)
+        cos_theta = torch.cos(theta_rad)
+        sin_phi = torch.sin(phi_rad)
+        cos_phi = torch.cos(phi_rad)
+        del theta_rad, phi_rad
+        
+        sin_dec0 = torch.sin(dec0_rad)
+        cos_dec0 = torch.cos(dec0_rad)
+        
+        # Compute dec
+        sin_dec = sin_theta * sin_dec0 + cos_theta * cos_dec0 * cos_phi
         dec_rad = torch.arcsin(sin_dec)
         del sin_dec
-        # y_term = torch.cos(theta_rad) * torch.sin(phi_rad)
-        # x_term = torch.sin(theta_rad) * torch.cos(dec0_rad) - torch.cos(theta_rad) * torch.sin(dec0_rad) * torch.cos(phi_rad)
+        
+        # Compute ra (reuse tensors where possible)
         ra_rad = ra0_rad + torch.atan2(
-            -torch.cos(theta_rad) * torch.sin(phi_rad),
-            torch.sin(theta_rad) * torch.cos(dec0_rad)
-            - torch.cos(theta_rad) * torch.sin(dec0_rad) * torch.cos(phi_rad),
+            -cos_theta * sin_phi,
+            sin_theta * cos_dec0 - cos_theta * sin_dec0 * cos_phi
         )
-        del theta_rad, phi_rad, ra0_rad, dec0_rad
-        # Convert to degrees and normalize
+        del sin_theta, cos_theta, sin_phi, cos_phi, sin_dec0, cos_dec0
+        
+        # Convert to degrees
         ra = torch.rad2deg(ra_rad) % 360.0
         dec = torch.rad2deg(dec_rad)
         del ra_rad, dec_rad
+        
         return ra, dec
+
 
     def calculate_sourceCoords(self):
         """
@@ -439,135 +452,101 @@ class Reproject:
         torch.Tensor
             Batch of source image pixel coordinates.
         """
-        # Get batch of sky coordinates
-        batch_ra, batch_dec = self.calculate_skyCoords()
-        B, H, W = batch_ra.shape
-
-        # Prepare to collect results for each source image
+    
+        B = len(self.batch_source_images)
+        y_grid, x_grid = self.target_grid
+        _, H, W = y_grid.shape
+        
+        # Pre-allocate output tensors
         batch_x_pixel = torch.zeros((B, H, W), dtype=torch.float64, device=self.device)
         batch_y_pixel = torch.zeros((B, H, W), dtype=torch.float64, device=self.device)
-
+        
         # Process each source image's coordinates
         for b in range(B):
+            
+            # Calculate sky coords for just this batch element
+            # Extract single batch element from grid
+            x_grid_b = x_grid[b:b+1]  # Keep batch dimension
+            y_grid_b = y_grid[b:b+1]
+            
+            ra, dec = self.calculate_skyCoords(x_grid_b, y_grid_b)
+            ra = ra.squeeze(0)  # Remove batch dimension
+            dec = dec.squeeze(0)
+            
             # Get WCS parameters for this specific source image
             source_wcs_params = self.batch_source_wcs_params[b]
-            # Unpack WCS parameters
             crpix = source_wcs_params["crpix"]
             crval = source_wcs_params["crval"]
             pc_matrix = source_wcs_params["pc_matrix"]
             cdelt = source_wcs_params["cdelt"]
             sip_coeffs = source_wcs_params["sip_coeffs"]
-            # Extract this batch's RA and Dec
-            ra = batch_ra[b]
-            dec = batch_dec[b]
+            
             # Conversion calculations
             ra_rad = torch.deg2rad(ra)
             dec_rad = torch.deg2rad(dec)
-            ra_dim = ra.dim()
-            ra_shape = ra.shape
-            del ra, dec
             ra0_rad = crval[0] * torch.pi / 180.0
             dec0_rad = crval[1] * torch.pi / 180.0
-            # Convert numpy arrays to torch tensors if needed
-            # if not isinstance(ra, torch.Tensor):
-            #     ra = torch.tensor(ra, device=self.device)
-            # Step 1: Convert from world to native spherical coordinates
-            # Calculate the native spherical coordinates using the correct sign conventions
-            y_phi = -torch.cos(dec_rad) * torch.sin(
-                ra_rad - ra0_rad
-            )  # Note the negative sign
-            # Calculate the denominator for phi
-            x_phi = torch.sin(dec_rad) * torch.cos(dec0_rad) - torch.cos(
-                dec_rad
-            ) * torch.sin(dec0_rad) * torch.cos(ra_rad - ra0_rad)
-            # Calculate native longitude (phi)
-            phi = atan2d(y_phi, x_phi)
+            
+            # Convert from world to native spherical coordinates
+            y_phi = -torch.cos(dec_rad) * torch.sin(ra_rad - ra0_rad)
+            x_phi = torch.sin(dec_rad) * torch.cos(dec0_rad) - torch.cos(dec_rad) * torch.sin(dec0_rad) * torch.cos(ra_rad - ra0_rad)
+            phi = torch.rad2deg(torch.atan2(y_phi, x_phi))
             del x_phi, y_phi
-            # Calculate native latitude (theta)
+            
             theta = torch.rad2deg(
                 torch.arcsin(
                     torch.sin(dec_rad) * torch.sin(dec0_rad)
-                    + torch.cos(dec_rad)
-                    * torch.cos(dec0_rad)
-                    * torch.cos(ra_rad - ra0_rad)
+                    + torch.cos(dec_rad) * torch.cos(dec0_rad) * torch.cos(ra_rad - ra0_rad)
                 )
             )
-            del ra_rad, dec_rad
-            # del sin_dec, cos_dec, sin_dec0, cos_dec0, cos_delta_ra
-            # Step 2: Apply the TAN projection (tans2x function from WCSLib)
-            # Calculate sine and cosine of phi and theta
-            sin_phi, cos_phi = sincosd(phi)
+            del ra_rad, dec_rad, ra, dec
+            
+            # Apply TAN projection
+            sin_phi, cos_phi = torch.sin(torch.deg2rad(phi)), torch.cos(torch.deg2rad(phi))
             del phi
-            sin_theta, cos_theta = sincosd(theta)
+            sin_theta, cos_theta = torch.sin(torch.deg2rad(theta)), torch.cos(torch.deg2rad(theta))
             del theta
-            # Check for singularity (when sin_theta is zero)
+            
+            # Check for singularity
             eps = 1e-10
             if torch.any(torch.abs(sin_theta) < eps):
                 raise ValueError("Singularity in tans2x: theta close to 0 degrees")
-            # r0 is the radius scaling factor (typically 180.0/π)
+            
             r0 = torch.tensor(180.0 / torch.pi, device=self.device)
-            # Calculate the scaling factor r with correct sign
             r = r0 * cos_theta / sin_theta
             del cos_theta, sin_theta, r0
-            # Calculate intermediate world coordinates (x_scaled, y_scaled)
-            # With the corrected signs based on your findings
-            x_scaled = -r * sin_phi  # Note the negative sign
+            
+            x_scaled = -r * sin_phi
             y_scaled = r * cos_phi
             del sin_phi, cos_phi, r
-            # Step 3: Apply the inverse of the CD matrix to get pixel offsets
-            # First, construct the CD matrix
+            
+            # Apply inverse CD matrix
             CD_matrix = pc_matrix * cdelt
-            del pc_matrix, cdelt
-            # Calculate the inverse of the CD matrix
             CD_inv = torch.linalg.inv(CD_matrix)
             del CD_matrix
-            # Handle batch processing for arrays
-            if ra_dim == 0:  # scalar inputs
-                standard_coords = torch.tensor(
-                    [x_scaled.item(), y_scaled.item()],
-                    device=self.device,
-                    dtype=torch.float64,
-                )
-                pixel_offsets = torch.matmul(CD_inv, standard_coords)
-                u = pixel_offsets[0]
-                v = pixel_offsets[1]
-                del CD_inv, pixel_offsets, standard_coords
-            else:  # array inputs
-                # Reshape for batch processing if needed
-                if ra_dim > 1:
-                    original_shape = ra_shape
-                    x_scaled_flat = x_scaled.reshape(-1)
-                    y_scaled_flat = y_scaled.reshape(-1)
-                else:
-                    x_scaled_flat = x_scaled
-                    y_scaled_flat = y_scaled
-                # Stack for batch matrix multiplication
-                del x_scaled, y_scaled
-                standard_coords = torch.stack(
-                    [x_scaled_flat, y_scaled_flat], dim=1
-                )  # Shape: [N, 2]
-                del x_scaled_flat, y_scaled_flat
-                # Use batch matrix multiplication
-                pixel_offsets = torch.matmul(standard_coords, CD_inv.T)  # Shape: [N, 2]
-                u = pixel_offsets[:, 0]
-                v = pixel_offsets[:, 1]
-                del CD_inv, pixel_offsets, standard_coords
-                # Reshape back to original dimensions if needed
-                if ra_dim > 1:
-                    u = u.reshape(original_shape)
-                    v = v.reshape(original_shape)
+            
+            # Batch matrix multiplication
+            x_scaled_flat = x_scaled.reshape(-1)
+            y_scaled_flat = y_scaled.reshape(-1)
+            del x_scaled, y_scaled
+            
+            standard_coords = torch.stack([x_scaled_flat, y_scaled_flat], dim=1)
+            del x_scaled_flat, y_scaled_flat
+            
+            pixel_offsets = torch.matmul(standard_coords, CD_inv.T)
+            u = pixel_offsets[:, 0].reshape(H, W)
+            v = pixel_offsets[:, 1].reshape(H, W)
+            del CD_inv, pixel_offsets, standard_coords
+            
             if sip_coeffs is not None:
                 u, v = apply_inverse_sip_distortion(u, v, sip_coeffs, self.device)
-
-            # Step 4: Add the reference pixel to get final pixel coordinates
-            # Remember to add (CRPIX-1) to account for 1-based indexing in FITS/WCS
-            x_pixel = u + (crpix[0] - 1)
-            y_pixel = v + (crpix[1] - 1)
-            del u, v
-            batch_x_pixel[b] = x_pixel
-            batch_y_pixel[b] = y_pixel
-            del x_pixel, y_pixel, crpix, crval
-        del batch_ra, batch_dec
+            
+            # Add reference pixel
+            batch_x_pixel[b] = u + (crpix[0] - 1)
+            batch_y_pixel[b] = v + (crpix[1] - 1)
+            del u, v, crpix, crval, pc_matrix, cdelt
+            
+        
         return batch_x_pixel, batch_y_pixel
 
 
@@ -617,15 +596,21 @@ class Reproject:
         Areas in the target image that map outside the source image boundaries
         will be filled with zeros (using 'zeros' padding_mode).
         """
+    
         # Get source coordinates
         x_source, y_source = self.calculate_sourceCoords()
         B, H, W = self.batch_source_images.shape
+        
+        
         # Normalize coordinates
         x_normalized = 2.0 * (x_source / (W - 1)) - 1.0
         y_normalized = 2.0 * (y_source / (H - 1)) - 1.0
+        
         # Prepare images and grid for grid_sample
         source_images = self.batch_source_images.unsqueeze(1)  # [B, 1, H, W]
         ones = torch.ones_like(source_images)
+        
+        
         # Combine images with ones for footprint calculation
         combined_result = interpolate_image(
             torch.cat([source_images, ones], dim=1),
@@ -633,39 +618,60 @@ class Reproject:
             interpolation_mode,
         )
         del source_images, ones, x_normalized, y_normalized
-        # Create output array initialized with zeros
+        
+        
+        # Create output array initialized with NaN
         result = torch.full_like(combined_result[:, 0].squeeze(), torch.nan)
-        # Apply footprint correction only where footprint is significant
         valid_pixels = combined_result[:, 1].squeeze() > EPSILON
-        # Apply footprint correction only where footprint is significant
+        
         if torch.any(valid_pixels):
             if self.conserve_flux:
-            # Normalize by the footprint where valid
+                # Normalize by the footprint where valid
                 result[valid_pixels] = (
                     combined_result[:, 0].squeeze()[valid_pixels]
                     / combined_result[:, 1].squeeze()[valid_pixels]
                 )
-                if self.compute_jacobian:  # Include Jacobian determinant computation
-                    dy_x, dx_x = gradient2d(x_source)  # dx_x = ∂x_in/∂x_out, dy_x = ∂x_in/∂y_out
-                    dy_y, dx_y = gradient2d(y_source)  # dx_y = ∂y_in/∂x_out, dy_y = ∂y_in/∂y_out
-                    # Build Jacobian components
-                    Jxx = dx_x  # ∂x_in / ∂x_out
-                    Jyx = dx_y  # ∂y_in / ∂x_out
-                    Jxy = dy_x  # ∂x_in / ∂y_out
-                    Jyy = dy_y  # ∂y_in / ∂y_out
-                    # Determinant
-                    jacobian_det = Jxx * Jyy - Jxy * Jyx
-                    # Apply scaling
-                    result = torch.where(valid_pixels, result * jacobian_det.squeeze(0), result)
-            else:  # Do not apply flux conservation
+                
+                # Free combined_result immediately
+                del combined_result
+                
+                
+                if self.compute_jacobian:
+                    
+                    # OPTIMIZATION: Compute Jacobian determinant in-place without storing all components
+                    # Instead of storing Jxx, Jxy, Jyx, Jyy separately, compute det directly
+                    
+                    # Get gradients
+                    dy_x, dx_x = gradient2d(x_source)  # ∂x_in/∂y_out, ∂x_in/∂x_out
+                    
+                    # Compute first part of determinant: dx_x * dy_y
+                    dy_y, dx_y = gradient2d(y_source)  # ∂y_in/∂y_out, ∂y_in/∂x_out
+                    
+                    # Compute determinant in-place: det(J) = dx_x * dy_y - dy_x * dx_y
+                    # Do this operation in-place to save memory
+                    jacobian_det = dx_x * dy_y  # Reuse dx_x memory
+                    del dy_y  # Free immediately
+                    
+                    # Subtract second term in-place
+                    jacobian_det -= dy_x * dx_y
+                    del dx_x, dy_x, dx_y  # Free all gradient components
+                    
+                    # Apply scaling only where valid
+                    result[valid_pixels] *= jacobian_det.squeeze(0)[valid_pixels]
+                    del jacobian_det
+                    
+            else:
                 result[valid_pixels] = combined_result[:, 0].squeeze()[valid_pixels]
+                del combined_result
         else:
             result = combined_result[:, 0].squeeze() / combined_result[:, 1].squeeze()
+            del combined_result
             logger.warning(
                 "No valid pixels found in footprint! Using raw interpolated values"
             )
-        del valid_pixels
-
+        
+        del valid_pixels, x_source, y_source
+        
         return result
 
 
@@ -809,11 +815,13 @@ def calculate_reprojection(
     else:
         source_hdus = [normalize_to_hdu(source_hdus)]
 
+
     # Convert Header to WCS if needed
     if isinstance(target_wcs, Header):
         target_wcs = WCS(target_wcs)
     if not shape_out:
         shape_out = source_hdus[0].data.shape
+    
     reprojection = Reproject(
         source_hdus=source_hdus,
         target_wcs=target_wcs,
@@ -824,6 +832,8 @@ def calculate_reprojection(
         conserve_flux=conserve_flux,
         compute_jacobian=compute_jacobian,
     )
+    
+    
     order = validate_interpolation_order(order)
 
     if requires_grad:
@@ -836,5 +846,8 @@ def calculate_reprojection(
             .astype(np.float32)
         )
 
+    
     torch.cuda.empty_cache()
+    
+    
     return result
