@@ -8,6 +8,8 @@ A high-performance Python package for reprojecting astronomical images between d
 [![DOI](https://zenodo.org/badge/936088731.svg)](https://doi.org/10.5281/zenodo.15170605)
  [![status](https://joss.theoj.org/papers/7f22d1073d87a3e78820f37cf7d726f6/status.svg)](https://joss.theoj.org/papers/7f22d1073d87a3e78820f37cf7d726f6)
 
+ [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/DragonflyTelescope/dfreproject/badge)](https://scorecard.dev/viewer/?uri=github.com/DragonflyTelescope/dfreproject)
+
 The idea behind this package was to make a stripped down version of the `reproject` package affiliated with astropy in order to reduce computational time.
 We achieve approximately 20X faster computations with this package using the GPU and 10X using the CPU for images taken by the Dragonfly Telephoto Array. Take a look at the demos for an example.
 We note that the only projection we currently support is the Tangential Gnomonic projection which is the most popular in optical astronomy.
