@@ -11,7 +11,7 @@ authors:
     orcid: 0000-0003-2001-1076
     equal-contrib: true
     affiliation: "1, 2" # (Multiple affiliations must be quoted)
-  - name: Pieter Van Dokkum
+  - name: Pieter van Dokkum
     equal-contrib: false # (This is how you can denote equal contributions between multiple authors)
     affiliation: "1, 3"
   - name: Steven R. Janssens
