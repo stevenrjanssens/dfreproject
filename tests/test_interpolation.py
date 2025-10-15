@@ -3,10 +3,7 @@ import torch
 import numpy as np
 from astropy.wcs import WCS
 from astropy.io import fits
-
-
-# Import the actual Reproject class - adjust as needed
-# from dfreproject.reproject import Reproject
+from dfreproject.reproject import validate_interpolation_order
 
 @pytest.mark.integration
 class TestInterpolationIntegration:
@@ -41,13 +38,33 @@ class TestInterpolationIntegration:
         reproject = setup_real_projection
 
         # Get original flux
-        original_flux = np.nansum(reproject.batch_source_images[0])
+        original_flux = np.nansum(reproject.batch_source_images[0].cpu())
 
         # Perform interpolation
         result = reproject.interpolate_source_image(interpolation_mode="bilinear")
 
         # Get interpolated flux
-        interpolated_flux = np.nansum(result)
+        interpolated_flux = np.nansum(result.cpu())
+
+        # Flux should be approximately conserved
+        # Allow some tolerance for edge effects and numerical precision
+        # Actual tolerance may need adjustment based on your specific transformations
+        err = abs(interpolated_flux - original_flux) / original_flux
+
+        assert err < 0.01
+
+    def test_flux_conservation_lanczos(self, setup_real_projection):
+        """Test that flux is approximately conserved during interpolation using lanczos."""
+        reproject = setup_real_projection
+
+        # Get original flux
+        original_flux = np.nansum(reproject.batch_source_images[0].cpu())
+
+        # Perform interpolation
+        result = reproject.interpolate_source_image(interpolation_mode="lanczos")
+
+        # Get interpolated flux
+        interpolated_flux = np.nansum(result.cpu())
 
         # Flux should be approximately conserved
         # Allow some tolerance for edge effects and numerical precision
@@ -124,7 +141,7 @@ class TestInterpolationIntegration:
 
         # Vertical line should have higher values than horizontal after rotation
         assert np.mean(vertical_line_values) > np.mean(horizontal_line_values)
-from dfreproject.reproject import validate_interpolation_order
+
 class TestValidateInterpolationOrder:
 
     def test_valid_orders(self):
