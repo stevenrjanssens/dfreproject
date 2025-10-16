@@ -1,0 +1,296 @@
+dfreproject.reproject
+=====================
+
+.. py:module:: dfreproject.reproject
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   dfreproject.reproject.logger
+   dfreproject.reproject.EPSILON
+   dfreproject.reproject.VALID_ORDERS
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   dfreproject.reproject.Reproject
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   dfreproject.reproject.validate_interpolation_order
+   dfreproject.reproject.atan2d
+   dfreproject.reproject.sincosd
+   dfreproject.reproject.interpolate_image
+   dfreproject.reproject.calculate_reprojection
+
+
+Module Contents
+---------------
+
+.. py:data:: logger
+
+.. py:data:: EPSILON
+   :value: 1e-10
+
+
+.. py:data:: VALID_ORDERS
+   :value: ['bicubic', 'bilinear', 'nearest', 'nearest-neighbors', 'lanczos']
+
+
+.. py:function:: validate_interpolation_order(order: str) -> str
+
+   Function to validate the requested interpolation order.
+
+   The order must be one of the following: "bicubic", "bilinear",
+   "nearest-neighbors". "nearest" is an alias for "nearest-neighbors".
+
+   :param order: Interpolation order to validate.
+   :type order: str
+
+   :returns: Validated interpolation order.
+   :rtype: str
+
+   :raises ValueError: When the provided order is not one of the valid interpolation orders.
+
+
+.. py:function:: atan2d(y: torch.Tensor, x: torch.Tensor) -> torch.Tensor
+
+   PyTorch implementation of WCSLib's atan2d function.
+
+   :param y: y coordinate(s).
+   :type y: torch.Tensor
+   :param x: x coordinate(s).
+   :type x: torch.Tensor
+
+   :returns: atan2d(y, x) in degrees.
+   :rtype: torch.Tensor
+
+
+.. py:function:: sincosd(angle_deg: torch.Tensor) -> torch.Tensor
+
+   PyTorch implementation of WCSLib's sincosd function.
+
+   :param angle_deg: angle in degrees.
+   :type angle_deg: torch.Tensor
+
+   :returns: sin(angle) in degrees, cos(angle) in degrees.
+   :rtype: tuple(torch.Tensor, torch.Tensor)
+
+
+.. py:function:: interpolate_image(source_image: torch.Tensor, grid: torch.Tensor, interpolation_mode: str) -> torch.Tensor
+
+   Image interpolation using grid_sample with LANCZOS support.
+
+   :param source_image: Source image to interpolate.
+   :type source_image: torch.Tensor
+   :param grid: Grid on which to interpolate.
+   :type grid: torch.Tensor
+   :param interpolation_mode: Interpolation mode to use. Supports PyTorch's built-in modes
+                              ('bilinear', 'bicubic', 'nearest') plus 'lanczos' for LANCZOS-3.
+   :type interpolation_mode: str
+
+   :returns: Interpolated image.
+   :rtype: torch.Tensor
+
+
+.. py:class:: Reproject(source_hdus: List[astropy.io.fits.PrimaryHDU], target_wcs: astropy.wcs.WCS, shape_out: Tuple[int, int], device: str = None, num_threads: int = None, requires_grad: bool = False, conserve_flux: bool = True, compute_jacobian: bool = True)
+
+   .. py:attribute:: requires_grad
+      :value: False
+
+
+
+   .. py:attribute:: batch_source_images
+
+
+   .. py:attribute:: batch_source_wcs_params
+
+
+   .. py:attribute:: target_wcs_params
+
+
+   .. py:attribute:: target_wcs
+
+
+   .. py:attribute:: target_grid
+
+
+   .. py:attribute:: conserve_flux
+      :value: True
+
+
+
+   .. py:attribute:: compute_jacobian
+      :value: True
+
+
+
+   .. py:method:: calculate_skyCoords(x_grid=None, y_grid=None) -> Tuple[torch.Tensor, torch.Tensor]
+
+      Calculate sky coordinates.
+
+      There are four primary steps:
+      1. Apply shift
+      2. Apply SIP distortion
+      3. Apply CD matrix
+      4. Apply transformation to celestial coordinates uing the Gnomonic Projection
+
+      These steps use the target wcs parameters.
+
+      :param x_grid: Batch of x-coordinates. If None, uses target grid x-coordinates.
+      :type x_grid: torch.Tensor, optional
+      :param y_grid: Batch of y-coordinates. If None, uses target grid y-coordinates.
+      :type y_grid: torch.Tensor, optional
+
+      :returns: Batched RA and Dec coordinates.
+      :rtype: tuple
+
+
+
+   .. py:method:: calculate_sourceCoords()
+
+      Calculate source image pixel coordinates corresponding to each target image pixel.
+
+      This function repeats the same steps in self.calculate_skyCoords()
+      except in the opposite order and with the source coordinate wcs.
+
+      :returns: Batch of source image pixel coordinates.
+      :rtype: torch.Tensor
+
+
+
+   .. py:method:: interpolate_source_image(interpolation_mode='bilinear') -> torch.Tensor
+
+      Interpolate the source image at the calculated source coordinates with flux conservation.
+
+      This method performs the actual pixel resampling needed for dfreproject
+      while preserving the total flux (photometric accuracy) by using a footprint correction and the Jacobian of the transformation.
+
+      The method uses a combined tensor approach for computational efficiency,
+      performing both image resampling and footprint tracking in a single operation.
+      Total flux is conserved locally (via footprint correction and the Jacobian SIP calculation).
+
+      :param interpolation_mode: The interpolation mode to use when sampling the source image.
+                                 Options include:
+                                 - 'nearest' : Nearest neighbor interpolation (no interpolation)
+                                 - 'bilinear' : Bilinear interpolation (default)
+                                 - 'bicubic' : Bicubic interpolation
+                                 - 'lanczos' : Lanczos interpolation
+
+                                 These correspond to the modes available in torch.nn.functional.grid_sample.
+      :type interpolation_mode: str, default 'bilinear'
+
+      :returns: The reprojected image with the same shape as the target image.
+                Pixel values are interpolated from the source image according to
+                the WCS transformation with flux conservation preserved.
+      :rtype: torch.Tensor
+
+      .. rubric:: Notes
+
+      This implementation uses a two-step flux conservation approach:
+
+      1. Local flux density conservation: The image and a "ones" tensor are interpolated
+         together, and the interpolated image is divided by the interpolated ones
+         tensor (footprint) to correct for any flux density spreading during interpolation.
+      2. Jacobian correction for full flux conservation: Multiply the footprint-corrected flux
+         by the determinant of the Jacobian to handle changes in area during the reprojection
+
+      The Jacobian correction can be circumvented if you set
+      compute_jacobian=False. However, the default behavior is to include this.
+
+      Areas in the target image that map outside the source image boundaries
+      will be filled with zeros (using 'zeros' padding_mode).
+
+
+
+.. py:function:: calculate_reprojection(source_hdus: Union[astropy.io.fits.PrimaryHDU, dfreproject.tensorhdu.TensorHDU, Tuple[numpy.ndarray, Union[astropy.wcs.WCS, astropy.io.fits.Header]], Tuple[torch.Tensor, Union[astropy.wcs.WCS, astropy.io.fits.Header]], List[Union[astropy.io.fits.PrimaryHDU, Tuple[numpy.ndarray, Union[astropy.wcs.WCS, astropy.io.fits.Header]]]]], target_wcs: Union[astropy.wcs.WCS, astropy.io.fits.Header], shape_out: Optional[Tuple[int, int]] = None, order: str = 'nearest', device: str = None, num_threads: int = None, requires_grad: bool = False, conserve_flux: bool = True, compute_jacobian: bool = True)
+
+   Reproject an astronomical image from a source WCS to a target WCS.
+
+   This high-level function provides a convenient interface for image reprojection,
+   handling all the necessary steps: WCS extraction, tensor creation, and interpolation.
+   It converts FITS HDU objects to the internal representation, performs the reprojection,
+   and returns the resulting image as a NumPy array or PyTorch tensor.
+
+   :param source_hdus: PrimaryHDU,
+                       TensorHDU,
+                       Tuple[np.ndarray, Union[WCS, Header]],
+                       Tuple[torch.Tensor, Union[WCS, Header]],
+                       List[Union[PrimaryHDU, Tuple[np.ndarray, Union[WCS, Header]]]]
+   :type source_hdus: Union[
+   :param ]: The source image(s) to be reprojected, which can be a PrimaryHDU, TensorHDU,
+             a tuple of (data, WCS/Header), or a list of such items.
+   :param target_wcs: WCS information for the target. If a Header is passed it will be converted to WCS.
+   :type target_wcs: Union[WCS, Header]
+   :param shape_out: Shape of the resampled array. If not provided, the output shape will match the input.
+   :type shape_out: Optional[Tuple[int, int]]
+   :param order: The interpolation method to use when resampling the source image.
+                 Options:
+                 - 'nearest' : Nearest neighbor interpolation (fastest, default)
+                 - 'bilinear' : Bilinear interpolation (good balance of speed/quality)
+                 - 'bicubic' : Bicubic interpolation (high quality, slow)
+                 - 'lanczos' : Lanczos 3-lobe interpolation (highest quality, slowest)
+   :type order: str, default 'nearest'
+   :param device: Device to use for computations. Defaults to GPU if available, otherwise uses CPU.
+   :type device: str, optional
+   :param num_threads: Number of threads to use on CPU.
+   :type num_threads: int, optional
+   :param requires_grad: If True, enables autograd for PyTorch tensors.
+   :type requires_grad: bool, optional
+   :param conserve_flux: If True, enables flux conservation through footprint calculations.
+                         By default, this is set to True.
+   :type conserve_flux: bool, optional
+   :param compute_jacobian: If True, enables non-linear flux conservation through Jacobian calculation. Note
+                            that this slightly increases RAM usage.
+                            By default, this is set to True.
+                            If there is no SIP distortion, users can set this to False.
+   :type compute_jacobian: bool, optional
+
+   :returns: The reprojected image as a numpy ndarray (default) or PyTorch tensor if
+             requires_grad=True.
+   :rtype: numpy.ndarray or torch.Tensor
+
+   .. rubric:: Notes
+
+   This function automatically:
+   - Detects and uses GPU acceleration if available
+   - Handles byte order conversion for tensor creation
+   - Converts data to float64 for processing
+   - Converts Header to WCS if needed
+
+   To save the result as a FITS file, convert the tensor back to a NumPy array
+   and create a new FITS HDU with the target WCS header.
+
+   .. rubric:: Examples
+
+   >>> from astropy.io import fits
+   >>> from astropy.wcs import WCS
+   >>> from dfreproject.reproject import calculate_reprojection
+   >>>
+   >>> # Open source and target images
+   >>> source_hdu = fits.open('source_image.fits')[0]
+   >>> target_hdu = fits.open('target_grid.fits')[0]
+   >>> target_wcs = WCS(target_hdu.header)
+   >>>
+   >>> # Perform reprojection with bilinear interpolation
+   >>> reprojected = calculate_reprojection(
+   ...     source_hdus=source_hdu,
+   ...     target_wcs=target_wcs,
+   ...     shape_out=target_hdu.data.shape,
+   ...     order='bilinear'
+   ... )
+   >>> # Save as FITS
+   >>> output_hdu = fits.PrimaryHDU(data=reprojected, header=target_hdu.header)
+   >>> output_hdu.writeto('reprojected_image.fits', overwrite=True)
+
+

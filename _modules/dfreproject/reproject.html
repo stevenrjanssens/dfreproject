@@ -1,0 +1,1021 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>dfreproject.reproject &mdash; dfreproject  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            dfreproject
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../methodology.html">Astronomical Coordinate Transformations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../autoapi/index.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">dfreproject</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">dfreproject.reproject</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for dfreproject.reproject</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">astropy.io.fits</span><span class="w"> </span><span class="kn">import</span> <span class="n">Header</span><span class="p">,</span> <span class="n">PrimaryHDU</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">astropy.wcs</span><span class="w"> </span><span class="kn">import</span> <span class="n">WCS</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.lanczos</span><span class="w"> </span><span class="kn">import</span> <span class="n">lanczos_grid_sample</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.sip</span><span class="w"> </span><span class="kn">import</span> <span class="n">apply_inverse_sip_distortion</span><span class="p">,</span> <span class="n">apply_sip_distortion</span><span class="p">,</span> <span class="n">get_sip_coeffs</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.tensorhdu</span><span class="w"> </span><span class="kn">import</span> <span class="n">TensorHDU</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_device</span><span class="p">,</span> <span class="n">gradient2d</span>
+
+<div class="viewcode-block" id="logger">
+<a class="viewcode-back" href="../../autoapi/dfreproject/reproject/index.html#dfreproject.reproject.logger">[docs]</a>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="EPSILON">
+<a class="viewcode-back" href="../../autoapi/dfreproject/reproject/index.html#dfreproject.reproject.EPSILON">[docs]</a>
+<span class="n">EPSILON</span> <span class="o">=</span> <span class="mf">1e-10</span></div>
+
+<div class="viewcode-block" id="VALID_ORDERS">
+<a class="viewcode-back" href="../../autoapi/dfreproject/reproject/index.html#dfreproject.reproject.VALID_ORDERS">[docs]</a>
+<span class="n">VALID_ORDERS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;bicubic&quot;</span><span class="p">,</span> <span class="s2">&quot;bilinear&quot;</span><span class="p">,</span> <span class="s2">&quot;nearest&quot;</span><span class="p">,</span> <span class="s2">&quot;nearest-neighbors&quot;</span><span class="p">,</span> <span class="s1">&#39;lanczos&#39;</span><span class="p">]</span></div>
+
+
+
+
+<div class="viewcode-block" id="validate_interpolation_order">
+<a class="viewcode-back" href="../../autoapi/dfreproject/reproject/index.html#dfreproject.reproject.validate_interpolation_order">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">validate_interpolation_order</span><span class="p">(</span><span class="n">order</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function to validate the requested interpolation order.</span>
+
+<span class="sd">    The order must be one of the following: &quot;bicubic&quot;, &quot;bilinear&quot;,</span>
+<span class="sd">    &quot;nearest-neighbors&quot;. &quot;nearest&quot; is an alias for &quot;nearest-neighbors&quot;.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    order : str</span>
+<span class="sd">        Interpolation order to validate.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        Validated interpolation order.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        When the provided order is not one of the valid interpolation orders.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">order</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">VALID_ORDERS</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;order must be one of: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">VALID_ORDERS</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">order</span> <span class="o">==</span> <span class="s2">&quot;nearest-neighbors&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;nearest&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">order</span></div>
+
+
+
+<span class="c1"># Helper functions for trigonometric calculations</span>
+<div class="viewcode-block" id="atan2d">
+<a class="viewcode-back" href="../../autoapi/dfreproject/reproject/index.html#dfreproject.reproject.atan2d">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">atan2d</span><span class="p">(</span><span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    PyTorch implementation of WCSLib&#39;s atan2d function.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    y : torch.Tensor</span>
+<span class="sd">        y coordinate(s).</span>
+<span class="sd">    x : torch.Tensor</span>
+<span class="sd">        x coordinate(s).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    torch.Tensor</span>
+<span class="sd">        atan2d(y, x) in degrees.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="sincosd">
+<a class="viewcode-back" href="../../autoapi/dfreproject/reproject/index.html#dfreproject.reproject.sincosd">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">sincosd</span><span class="p">(</span><span class="n">angle_deg</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    PyTorch implementation of WCSLib&#39;s sincosd function.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    angle_deg : torch.Tensor</span>
+<span class="sd">        angle in degrees.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple(torch.Tensor, torch.Tensor)</span>
+<span class="sd">        sin(angle) in degrees, cos(angle) in degrees.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">angle_rad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">angle_deg</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle_rad</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle_rad</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="interpolate_image">
+<a class="viewcode-back" href="../../autoapi/dfreproject/reproject/index.html#dfreproject.reproject.interpolate_image">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">interpolate_image</span><span class="p">(</span>
+    <span class="n">source_image</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">grid</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">interpolation_mode</span><span class="p">:</span> <span class="nb">str</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Image interpolation using grid_sample with LANCZOS support.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    source_image : torch.Tensor</span>
+<span class="sd">        Source image to interpolate.</span>
+<span class="sd">    grid : torch.Tensor</span>
+<span class="sd">        Grid on which to interpolate.</span>
+<span class="sd">    interpolation_mode: str</span>
+<span class="sd">        Interpolation mode to use. Supports PyTorch&#39;s built-in modes</span>
+<span class="sd">        (&#39;bilinear&#39;, &#39;bicubic&#39;, &#39;nearest&#39;) plus &#39;lanczos&#39; for LANCZOS-3.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    torch.Tensor</span>
+<span class="sd">        Interpolated image.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">interpolation_mode</span> <span class="o">==</span> <span class="s1">&#39;lanczos&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">lanczos_grid_sample</span><span class="p">(</span><span class="n">source_image</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">padding_mode</span><span class="o">=</span><span class="s2">&quot;zeros&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">grid_sample</span><span class="p">(</span>
+            <span class="n">source_image</span><span class="p">,</span>
+            <span class="n">grid</span><span class="p">,</span>
+            <span class="n">mode</span><span class="o">=</span><span class="n">interpolation_mode</span><span class="p">,</span>
+            <span class="n">align_corners</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">padding_mode</span><span class="o">=</span><span class="s2">&quot;zeros&quot;</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Reproject">
+<a class="viewcode-back" href="../../autoapi/dfreproject/reproject/index.html#dfreproject.reproject.Reproject">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Reproject</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">source_hdus</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">PrimaryHDU</span><span class="p">],</span>
+        <span class="n">target_wcs</span><span class="p">:</span> <span class="n">WCS</span><span class="p">,</span>
+        <span class="n">shape_out</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+        <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">num_threads</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">requires_grad</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">conserve_flux</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">compute_jacobian</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize a dfreproject operation between source and target image frames.</span>
+
+<span class="sd">        This constructor sets up the necessary components for reprojecting an astronomical</span>
+<span class="sd">        image from one World Coordinate System (WCS) to another. It stores the source</span>
+<span class="sd">        and target WCS information, images, and creates a coordinate grid for the target</span>
+<span class="sd">        image that will be used in the dfreproject process.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        source_hdus : List[PrimaryHDU]</span>
+<span class="sd">            List of HDUs containing the data and the header information for the</span>
+<span class="sd">            source image.</span>
+
+<span class="sd">        target_wcs : WCS</span>
+<span class="sd">            WCS for the target in an astropy.wcs compatible format.</span>
+
+<span class="sd">        shape_out: Tuple[int, int]</span>
+<span class="sd">            Shape of the output image.</span>
+
+<span class="sd">        device: str</span>
+<span class="sd">            Device to use for computations. Defaults to GPU if available</span>
+<span class="sd">            otherwise uses CPU.</span>
+
+<span class="sd">        num_threads: int</span>
+<span class="sd">            Number of threads to use on CPU.</span>
+
+<span class="sd">        conserve_flux: bool</span>
+<span class="sd">            If True, enables flux conservation through footprint calculation.</span>
+
+<span class="sd">        compute_jacobian: bool, optional</span>
+<span class="sd">            If True, enables non-linear flux conservation through Jacobian calculation.</span>
+<span class="sd">            Note that this increases RAM usage.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        This constructor creates a coordinate grid spanning the entire target image,</span>
+<span class="sd">        which will be used for the pixel-to-world and world-to-pixel transformations</span>
+<span class="sd">        during dfreproject. The grid is created with &#39;ij&#39; indexing, where the first</span>
+<span class="sd">        dimension corresponds to y (rows) and the second to x (columns).</span>
+
+<span class="sd">        The coordinate grid is stored as a tuple of tensors (batch, y_grid, x_grid), where</span>
+<span class="sd">        each element has the same shape as the target image.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; # Initialize the dfreproject object</span>
+<span class="sd">        &gt;&gt;&gt; reproject = Reproject(source_hdus, target_wcs)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># Set device</span>
+        <span class="k">if</span> <span class="n">device</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">get_device</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">num_threads</span><span class="p">:</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">set_num_threads</span><span class="p">(</span><span class="n">num_threads</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Reproject.requires_grad">
+<a class="viewcode-back" href="../../autoapi/dfreproject/reproject/index.html#dfreproject.reproject.Reproject.requires_grad">[docs]</a>
+        <span class="bp">self</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="n">requires_grad</span></div>
+
+
+<div class="viewcode-block" id="Reproject.batch_source_images">
+<a class="viewcode-back" href="../../autoapi/dfreproject/reproject/index.html#dfreproject.reproject.Reproject.batch_source_images">[docs]</a>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_source_images</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_source_images</span><span class="p">(</span><span class="n">source_hdus</span><span class="p">)</span></div>
+
+
+        <span class="c1"># Initialize the WCS objects</span>
+<div class="viewcode-block" id="Reproject.batch_source_wcs_params">
+<a class="viewcode-back" href="../../autoapi/dfreproject/reproject/index.html#dfreproject.reproject.Reproject.batch_source_wcs_params">[docs]</a>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_source_wcs_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_batch_wcs_params</span><span class="p">(</span><span class="n">source_hdus</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Reproject.target_wcs_params">
+<a class="viewcode-back" href="../../autoapi/dfreproject/reproject/index.html#dfreproject.reproject.Reproject.target_wcs_params">[docs]</a>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_wcs_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_wcs_params</span><span class="p">(</span><span class="n">target_wcs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Reproject.target_wcs">
+<a class="viewcode-back" href="../../autoapi/dfreproject/reproject/index.html#dfreproject.reproject.Reproject.target_wcs">[docs]</a>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_wcs</span> <span class="o">=</span> <span class="n">target_wcs</span></div>
+
+        
+        <span class="c1"># Define target grid</span>
+<div class="viewcode-block" id="Reproject.target_grid">
+<a class="viewcode-back" href="../../autoapi/dfreproject/reproject/index.html#dfreproject.reproject.Reproject.target_grid">[docs]</a>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_grid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_batch_target_grid</span><span class="p">(</span><span class="n">shape_out</span><span class="p">)</span></div>
+
+        
+        <span class="c1"># Define flux conservation booleans</span>
+<div class="viewcode-block" id="Reproject.conserve_flux">
+<a class="viewcode-back" href="../../autoapi/dfreproject/reproject/index.html#dfreproject.reproject.Reproject.conserve_flux">[docs]</a>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conserve_flux</span> <span class="o">=</span> <span class="n">conserve_flux</span></div>
+
+<div class="viewcode-block" id="Reproject.compute_jacobian">
+<a class="viewcode-back" href="../../autoapi/dfreproject/reproject/index.html#dfreproject.reproject.Reproject.compute_jacobian">[docs]</a>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compute_jacobian</span> <span class="o">=</span> <span class="n">compute_jacobian</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_source_images</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_hdus</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">PrimaryHDU</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Prepare batch of source images as a single tensor.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        source_hdus : List[PrimaryHDU]</span>
+<span class="sd">            List of HDUs containing the data and the header information for the source image.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        source_image : torch.Tensor</span>
+<span class="sd">            Stack of source image tensors.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">source_images</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">hdu</span> <span class="ow">in</span> <span class="n">source_hdus</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">requires_grad</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hdu</span><span class="p">,</span> <span class="n">TensorHDU</span><span class="p">):</span>
+                    <span class="n">img</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">tensor</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">img</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                        <span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span>
+                    <span class="p">)</span>
+                <span class="n">source_images</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>  <span class="c1"># In case there is a byte order error</span>
+            <span class="n">source_images</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span>
+                    <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">hdu</span> <span class="ow">in</span> <span class="n">source_hdus</span>
+            <span class="p">]</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">source_images</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_extract_wcs_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wcs</span><span class="p">:</span> <span class="n">WCS</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extract key WCS parameters into a dictionary for efficient tensor operations.</span>
+
+<span class="sd">        Returns a dictionary with pre-computed tensor parameters.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        wcs : WCS</span>
+<span class="sd">            WCS information.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        wcs_params : dict</span>
+<span class="sd">            WCS parameters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;crpix&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="n">wcs</span><span class="o">.</span><span class="n">wcs</span><span class="o">.</span><span class="n">crpix</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;crval&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="n">wcs</span><span class="o">.</span><span class="n">wcs</span><span class="o">.</span><span class="n">crval</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;pc_matrix&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="n">wcs</span><span class="o">.</span><span class="n">wcs</span><span class="o">.</span><span class="n">get_pc</span><span class="p">(),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;cdelt&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="n">wcs</span><span class="o">.</span><span class="n">wcs</span><span class="o">.</span><span class="n">cdelt</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;sip_coeffs&quot;</span><span class="p">:</span> <span class="n">get_sip_coeffs</span><span class="p">(</span><span class="n">wcs</span><span class="p">),</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_batch_wcs_params</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">source_hdus</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">PrimaryHDU</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="n">TensorHDU</span><span class="p">]]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Prepare batch of WCS parameters.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        source_hdus : List[PrimaryHDU]</span>
+<span class="sd">            List of HDUs containing the data and the header information for the</span>
+<span class="sd">            source image.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        List[dict]</span>
+<span class="sd">            List of dictionaries containing the WCS parameters extracted from each HDU.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_extract_wcs_params</span><span class="p">(</span><span class="n">WCS</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">))</span> <span class="k">for</span> <span class="n">hdu</span> <span class="ow">in</span> <span class="n">source_hdus</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_batch_target_grid</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">shape_out</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a batched target grid matching the number of source images.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        shape_out : Tuple[int, int]</span>
+<span class="sd">            Shape of the output image.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">B</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_source_images</span><span class="p">)</span>
+        <span class="n">H</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">shape_out</span>
+        
+        <span class="c1"># Create base grids once</span>
+        <span class="n">y_base</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">x_base</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">W</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        
+        <span class="c1"># Use broadcasting instead of repeat to save memory during creation</span>
+        <span class="c1"># expand() creates a view without allocating new memory</span>
+        <span class="n">y_grid</span> <span class="o">=</span> <span class="n">y_base</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span><span class="p">)</span>
+        <span class="n">x_grid</span> <span class="o">=</span> <span class="n">x_base</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span><span class="p">)</span>
+        
+        <span class="c1"># Only make contiguous copies if needed for operations</span>
+        <span class="c1"># Most operations work fine with non-contiguous tensors</span>
+        <span class="k">return</span> <span class="n">y_grid</span><span class="p">,</span> <span class="n">x_grid</span>
+
+<div class="viewcode-block" id="Reproject.calculate_skyCoords">
+<a class="viewcode-back" href="../../autoapi/dfreproject/reproject/index.html#dfreproject.reproject.Reproject.calculate_skyCoords">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_skyCoords</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">x_grid</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y_grid</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate sky coordinates.</span>
+
+<span class="sd">        There are four primary steps:</span>
+<span class="sd">        1. Apply shift</span>
+<span class="sd">        2. Apply SIP distortion</span>
+<span class="sd">        3. Apply CD matrix</span>
+<span class="sd">        4. Apply transformation to celestial coordinates uing the Gnomonic Projection</span>
+
+<span class="sd">        These steps use the target wcs parameters.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x_grid : torch.Tensor, optional</span>
+<span class="sd">            Batch of x-coordinates. If None, uses target grid x-coordinates.</span>
+<span class="sd">        y_grid : torch.Tensor, optional</span>
+<span class="sd">            Batch of y-coordinates. If None, uses target grid y-coordinates.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple</span>
+<span class="sd">            Batched RA and Dec coordinates.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="n">x_grid</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">y_grid</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">y_grid</span><span class="p">,</span> <span class="n">x_grid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_grid</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x_grid</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+                <span class="n">x_grid</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">x_grid</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">y_grid</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+                <span class="n">y_grid</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">y_grid</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">x_grid</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">x_grid</span> <span class="o">=</span> <span class="n">x_grid</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">y_grid</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">y_grid</span> <span class="o">=</span> <span class="n">y_grid</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        
+        <span class="n">B</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">y_grid</span><span class="o">.</span><span class="n">shape</span>
+        
+        <span class="c1"># Unpack target WCS parameters</span>
+        <span class="n">crpix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_wcs_params</span><span class="p">[</span><span class="s2">&quot;crpix&quot;</span><span class="p">]</span>
+        <span class="n">crval</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_wcs_params</span><span class="p">[</span><span class="s2">&quot;crval&quot;</span><span class="p">]</span>
+        <span class="n">pc_matrix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_wcs_params</span><span class="p">[</span><span class="s2">&quot;pc_matrix&quot;</span><span class="p">]</span>
+        <span class="n">cdelt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_wcs_params</span><span class="p">[</span><span class="s2">&quot;cdelt&quot;</span><span class="p">]</span>
+        <span class="n">sip_coeffs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_wcs_params</span><span class="p">[</span><span class="s2">&quot;sip_coeffs&quot;</span><span class="p">]</span>
+        
+        <span class="c1"># Compute pixel offsets (in-place when possible)</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">x_grid</span> <span class="o">-</span> <span class="p">(</span><span class="n">crpix</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">y_grid</span> <span class="o">-</span> <span class="p">(</span><span class="n">crpix</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        
+        <span class="c1"># Apply SIP distortion if present</span>
+        <span class="k">if</span> <span class="n">sip_coeffs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">apply_sip_distortion</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">sip_coeffs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        
+        <span class="c1"># Apply PC Matrix and CDELT</span>
+        <span class="n">CD_matrix</span> <span class="o">=</span> <span class="n">pc_matrix</span> <span class="o">*</span> <span class="n">cdelt</span>
+        
+        <span class="c1"># Optimize matrix multiplication</span>
+        <span class="n">pixel_offsets</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">u</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">v</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">del</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span>  <span class="c1"># Free immediately</span>
+        
+        <span class="n">transformed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bmm</span><span class="p">(</span><span class="n">pixel_offsets</span><span class="p">,</span> <span class="n">CD_matrix</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">del</span> <span class="n">pixel_offsets</span><span class="p">,</span> <span class="n">CD_matrix</span>
+        
+        <span class="n">x_scaled</span> <span class="o">=</span> <span class="n">transformed</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span><span class="p">)</span>
+        <span class="n">y_scaled</span> <span class="o">=</span> <span class="n">transformed</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span><span class="p">)</span>
+        <span class="k">del</span> <span class="n">transformed</span>
+        
+        
+        <span class="c1"># Compute radial distance (in-place operations)</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">x_scaled</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">add_</span><span class="p">(</span><span class="n">y_scaled</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)))</span>  <span class="c1"># More memory efficient</span>
+        <span class="n">r0</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">180.0</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+        
+        <span class="c1"># Compute phi efficiently</span>
+        <span class="n">phi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+        <span class="n">non_zero_r</span> <span class="o">=</span> <span class="n">r</span> <span class="o">&gt;</span> <span class="mi">0</span>  <span class="c1"># Avoid creating unnecessary boolean tensor</span>
+        <span class="n">phi</span><span class="p">[</span><span class="n">non_zero_r</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="o">-</span><span class="n">x_scaled</span><span class="p">[</span><span class="n">non_zero_r</span><span class="p">],</span> <span class="n">y_scaled</span><span class="p">[</span><span class="n">non_zero_r</span><span class="p">]))</span>
+        <span class="k">del</span> <span class="n">x_scaled</span><span class="p">,</span> <span class="n">y_scaled</span><span class="p">,</span> <span class="n">non_zero_r</span>
+        
+        <span class="n">phi_rad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span>
+        <span class="k">del</span> <span class="n">phi</span>
+        
+        <span class="n">theta_rad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">r0</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>  <span class="c1"># Direct computation without intermediate conversions</span>
+        <span class="k">del</span> <span class="n">r</span>
+        
+        <span class="c1"># Pre-compute trig values</span>
+        <span class="n">ra0_rad</span> <span class="o">=</span> <span class="n">crval</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.0</span><span class="p">)</span>
+        <span class="n">dec0_rad</span> <span class="o">=</span> <span class="n">crval</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.0</span><span class="p">)</span>
+        
+        <span class="n">sin_theta</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta_rad</span><span class="p">)</span>
+        <span class="n">cos_theta</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta_rad</span><span class="p">)</span>
+        <span class="n">sin_phi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi_rad</span><span class="p">)</span>
+        <span class="n">cos_phi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi_rad</span><span class="p">)</span>
+        <span class="k">del</span> <span class="n">theta_rad</span><span class="p">,</span> <span class="n">phi_rad</span>
+        
+        <span class="n">sin_dec0</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">dec0_rad</span><span class="p">)</span>
+        <span class="n">cos_dec0</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dec0_rad</span><span class="p">)</span>
+        
+        <span class="c1"># Compute dec</span>
+        <span class="n">sin_dec</span> <span class="o">=</span> <span class="n">sin_theta</span> <span class="o">*</span> <span class="n">sin_dec0</span> <span class="o">+</span> <span class="n">cos_theta</span> <span class="o">*</span> <span class="n">cos_dec0</span> <span class="o">*</span> <span class="n">cos_phi</span>
+        <span class="n">dec_rad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arcsin</span><span class="p">(</span><span class="n">sin_dec</span><span class="p">)</span>
+        <span class="k">del</span> <span class="n">sin_dec</span>
+        
+        <span class="c1"># Compute ra (reuse tensors where possible)</span>
+        <span class="n">ra_rad</span> <span class="o">=</span> <span class="n">ra0_rad</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span>
+            <span class="o">-</span><span class="n">cos_theta</span> <span class="o">*</span> <span class="n">sin_phi</span><span class="p">,</span>
+            <span class="n">sin_theta</span> <span class="o">*</span> <span class="n">cos_dec0</span> <span class="o">-</span> <span class="n">cos_theta</span> <span class="o">*</span> <span class="n">sin_dec0</span> <span class="o">*</span> <span class="n">cos_phi</span>
+        <span class="p">)</span>
+        <span class="k">del</span> <span class="n">sin_theta</span><span class="p">,</span> <span class="n">cos_theta</span><span class="p">,</span> <span class="n">sin_phi</span><span class="p">,</span> <span class="n">cos_phi</span><span class="p">,</span> <span class="n">sin_dec0</span><span class="p">,</span> <span class="n">cos_dec0</span>
+        
+        <span class="c1"># Convert to degrees</span>
+        <span class="n">ra</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">ra_rad</span><span class="p">)</span> <span class="o">%</span> <span class="mf">360.0</span>
+        <span class="n">dec</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">dec_rad</span><span class="p">)</span>
+        <span class="k">del</span> <span class="n">ra_rad</span><span class="p">,</span> <span class="n">dec_rad</span>
+        
+        <span class="k">return</span> <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span></div>
+
+
+
+<div class="viewcode-block" id="Reproject.calculate_sourceCoords">
+<a class="viewcode-back" href="../../autoapi/dfreproject/reproject/index.html#dfreproject.reproject.Reproject.calculate_sourceCoords">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_sourceCoords</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate source image pixel coordinates corresponding to each target image pixel.</span>
+
+<span class="sd">        This function repeats the same steps in self.calculate_skyCoords()</span>
+<span class="sd">        except in the opposite order and with the source coordinate wcs.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            Batch of source image pixel coordinates.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+    
+        <span class="n">B</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_source_images</span><span class="p">)</span>
+        <span class="n">y_grid</span><span class="p">,</span> <span class="n">x_grid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_grid</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">y_grid</span><span class="o">.</span><span class="n">shape</span>
+        
+        <span class="c1"># Pre-allocate output tensors</span>
+        <span class="n">batch_x_pixel</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">B</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">batch_y_pixel</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">B</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        
+        <span class="c1"># Process each source image&#39;s coordinates</span>
+        <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">B</span><span class="p">):</span>
+            
+            <span class="c1"># Calculate sky coords for just this batch element</span>
+            <span class="c1"># Extract single batch element from grid</span>
+            <span class="n">x_grid_b</span> <span class="o">=</span> <span class="n">x_grid</span><span class="p">[</span><span class="n">b</span><span class="p">:</span><span class="n">b</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># Keep batch dimension</span>
+            <span class="n">y_grid_b</span> <span class="o">=</span> <span class="n">y_grid</span><span class="p">[</span><span class="n">b</span><span class="p">:</span><span class="n">b</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+            
+            <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_skyCoords</span><span class="p">(</span><span class="n">x_grid_b</span><span class="p">,</span> <span class="n">y_grid_b</span><span class="p">)</span>
+            <span class="n">ra</span> <span class="o">=</span> <span class="n">ra</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># Remove batch dimension</span>
+            <span class="n">dec</span> <span class="o">=</span> <span class="n">dec</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            
+            <span class="c1"># Get WCS parameters for this specific source image</span>
+            <span class="n">source_wcs_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_source_wcs_params</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>
+            <span class="n">crpix</span> <span class="o">=</span> <span class="n">source_wcs_params</span><span class="p">[</span><span class="s2">&quot;crpix&quot;</span><span class="p">]</span>
+            <span class="n">crval</span> <span class="o">=</span> <span class="n">source_wcs_params</span><span class="p">[</span><span class="s2">&quot;crval&quot;</span><span class="p">]</span>
+            <span class="n">pc_matrix</span> <span class="o">=</span> <span class="n">source_wcs_params</span><span class="p">[</span><span class="s2">&quot;pc_matrix&quot;</span><span class="p">]</span>
+            <span class="n">cdelt</span> <span class="o">=</span> <span class="n">source_wcs_params</span><span class="p">[</span><span class="s2">&quot;cdelt&quot;</span><span class="p">]</span>
+            <span class="n">sip_coeffs</span> <span class="o">=</span> <span class="n">source_wcs_params</span><span class="p">[</span><span class="s2">&quot;sip_coeffs&quot;</span><span class="p">]</span>
+            
+            <span class="c1"># Conversion calculations</span>
+            <span class="n">ra_rad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">ra</span><span class="p">)</span>
+            <span class="n">dec_rad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">dec</span><span class="p">)</span>
+            <span class="n">ra0_rad</span> <span class="o">=</span> <span class="n">crval</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.0</span>
+            <span class="n">dec0_rad</span> <span class="o">=</span> <span class="n">crval</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.0</span>
+            
+            <span class="c1"># Convert from world to native spherical coordinates</span>
+            <span class="n">y_phi</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dec_rad</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">ra_rad</span> <span class="o">-</span> <span class="n">ra0_rad</span><span class="p">)</span>
+            <span class="n">x_phi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">dec_rad</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dec0_rad</span><span class="p">)</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dec_rad</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">dec0_rad</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">ra_rad</span> <span class="o">-</span> <span class="n">ra0_rad</span><span class="p">)</span>
+            <span class="n">phi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">y_phi</span><span class="p">,</span> <span class="n">x_phi</span><span class="p">))</span>
+            <span class="k">del</span> <span class="n">x_phi</span><span class="p">,</span> <span class="n">y_phi</span>
+            
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">arcsin</span><span class="p">(</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">dec_rad</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">dec0_rad</span><span class="p">)</span>
+                    <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dec_rad</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dec0_rad</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">ra_rad</span> <span class="o">-</span> <span class="n">ra0_rad</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">del</span> <span class="n">ra_rad</span><span class="p">,</span> <span class="n">dec_rad</span><span class="p">,</span> <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span>
+            
+            <span class="c1"># Apply TAN projection</span>
+            <span class="n">sin_phi</span><span class="p">,</span> <span class="n">cos_phi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">phi</span><span class="p">)),</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">phi</span><span class="p">))</span>
+            <span class="k">del</span> <span class="n">phi</span>
+            <span class="n">sin_theta</span><span class="p">,</span> <span class="n">cos_theta</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">theta</span><span class="p">)),</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">theta</span><span class="p">))</span>
+            <span class="k">del</span> <span class="n">theta</span>
+            
+            <span class="c1"># Check for singularity</span>
+            <span class="n">eps</span> <span class="o">=</span> <span class="mf">1e-10</span>
+            <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">sin_theta</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">eps</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Singularity in tans2x: theta close to 0 degrees&quot;</span><span class="p">)</span>
+            
+            <span class="n">r0</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">180.0</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">r0</span> <span class="o">*</span> <span class="n">cos_theta</span> <span class="o">/</span> <span class="n">sin_theta</span>
+            <span class="k">del</span> <span class="n">cos_theta</span><span class="p">,</span> <span class="n">sin_theta</span><span class="p">,</span> <span class="n">r0</span>
+            
+            <span class="n">x_scaled</span> <span class="o">=</span> <span class="o">-</span><span class="n">r</span> <span class="o">*</span> <span class="n">sin_phi</span>
+            <span class="n">y_scaled</span> <span class="o">=</span> <span class="n">r</span> <span class="o">*</span> <span class="n">cos_phi</span>
+            <span class="k">del</span> <span class="n">sin_phi</span><span class="p">,</span> <span class="n">cos_phi</span><span class="p">,</span> <span class="n">r</span>
+            
+            <span class="c1"># Apply inverse CD matrix</span>
+            <span class="n">CD_matrix</span> <span class="o">=</span> <span class="n">pc_matrix</span> <span class="o">*</span> <span class="n">cdelt</span>
+            <span class="n">CD_inv</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">CD_matrix</span><span class="p">)</span>
+            <span class="k">del</span> <span class="n">CD_matrix</span>
+            
+            <span class="c1"># Batch matrix multiplication</span>
+            <span class="n">x_scaled_flat</span> <span class="o">=</span> <span class="n">x_scaled</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">y_scaled_flat</span> <span class="o">=</span> <span class="n">y_scaled</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">del</span> <span class="n">x_scaled</span><span class="p">,</span> <span class="n">y_scaled</span>
+            
+            <span class="n">standard_coords</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">x_scaled_flat</span><span class="p">,</span> <span class="n">y_scaled_flat</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">del</span> <span class="n">x_scaled_flat</span><span class="p">,</span> <span class="n">y_scaled_flat</span>
+            
+            <span class="n">pixel_offsets</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">standard_coords</span><span class="p">,</span> <span class="n">CD_inv</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">pixel_offsets</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">W</span><span class="p">)</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">pixel_offsets</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">W</span><span class="p">)</span>
+            <span class="k">del</span> <span class="n">CD_inv</span><span class="p">,</span> <span class="n">pixel_offsets</span><span class="p">,</span> <span class="n">standard_coords</span>
+            
+            <span class="k">if</span> <span class="n">sip_coeffs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">apply_inverse_sip_distortion</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">sip_coeffs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            
+            <span class="c1"># Add reference pixel</span>
+            <span class="n">batch_x_pixel</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="n">u</span> <span class="o">+</span> <span class="p">(</span><span class="n">crpix</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">batch_y_pixel</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span> <span class="o">+</span> <span class="p">(</span><span class="n">crpix</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">del</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">crpix</span><span class="p">,</span> <span class="n">crval</span><span class="p">,</span> <span class="n">pc_matrix</span><span class="p">,</span> <span class="n">cdelt</span>
+            
+        
+        <span class="k">return</span> <span class="n">batch_x_pixel</span><span class="p">,</span> <span class="n">batch_y_pixel</span></div>
+
+
+
+<div class="viewcode-block" id="Reproject.interpolate_source_image">
+<a class="viewcode-back" href="../../autoapi/dfreproject/reproject/index.html#dfreproject.reproject.Reproject.interpolate_source_image">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">interpolate_source_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interpolation_mode</span><span class="o">=</span><span class="s2">&quot;bilinear&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Interpolate the source image at the calculated source coordinates with flux conservation.</span>
+
+<span class="sd">        This method performs the actual pixel resampling needed for dfreproject</span>
+<span class="sd">        while preserving the total flux (photometric accuracy) by using a footprint correction and the Jacobian of the transformation.</span>
+
+<span class="sd">        The method uses a combined tensor approach for computational efficiency,</span>
+<span class="sd">        performing both image resampling and footprint tracking in a single operation.</span>
+<span class="sd">        Total flux is conserved locally (via footprint correction and the Jacobian SIP calculation).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        interpolation_mode : str, default &#39;bilinear&#39;</span>
+<span class="sd">            The interpolation mode to use when sampling the source image.</span>
+<span class="sd">            Options include:</span>
+<span class="sd">            - &#39;nearest&#39; : Nearest neighbor interpolation (no interpolation)</span>
+<span class="sd">            - &#39;bilinear&#39; : Bilinear interpolation (default)</span>
+<span class="sd">            - &#39;bicubic&#39; : Bicubic interpolation</span>
+<span class="sd">            - &#39;lanczos&#39; : Lanczos interpolation</span>
+
+<span class="sd">            These correspond to the modes available in torch.nn.functional.grid_sample.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            The reprojected image with the same shape as the target image.</span>
+<span class="sd">            Pixel values are interpolated from the source image according to</span>
+<span class="sd">            the WCS transformation with flux conservation preserved.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        This implementation uses a two-step flux conservation approach:</span>
+
+<span class="sd">        1. Local flux density conservation: The image and a &quot;ones&quot; tensor are interpolated</span>
+<span class="sd">           together, and the interpolated image is divided by the interpolated ones</span>
+<span class="sd">           tensor (footprint) to correct for any flux density spreading during interpolation.</span>
+<span class="sd">        2. Jacobian correction for full flux conservation: Multiply the footprint-corrected flux</span>
+<span class="sd">           by the determinant of the Jacobian to handle changes in area during the reprojection</span>
+
+<span class="sd">        The Jacobian correction can be circumvented if you set</span>
+<span class="sd">        compute_jacobian=False. However, the default behavior is to include this.</span>
+
+<span class="sd">        Areas in the target image that map outside the source image boundaries</span>
+<span class="sd">        will be filled with zeros (using &#39;zeros&#39; padding_mode).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+    
+        <span class="c1"># Get source coordinates</span>
+        <span class="n">x_source</span><span class="p">,</span> <span class="n">y_source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_sourceCoords</span><span class="p">()</span>
+        <span class="n">B</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_source_images</span><span class="o">.</span><span class="n">shape</span>
+        
+        
+        <span class="c1"># Normalize coordinates</span>
+        <span class="n">x_normalized</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">x_source</span> <span class="o">/</span> <span class="p">(</span><span class="n">W</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="o">-</span> <span class="mf">1.0</span>
+        <span class="n">y_normalized</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">y_source</span> <span class="o">/</span> <span class="p">(</span><span class="n">H</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="o">-</span> <span class="mf">1.0</span>
+        
+        <span class="c1"># Prepare images and grid for grid_sample</span>
+        <span class="n">source_images</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_source_images</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># [B, 1, H, W]</span>
+        <span class="n">ones</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">source_images</span><span class="p">)</span>
+        
+        
+        <span class="c1"># Combine images with ones for footprint calculation</span>
+        <span class="n">combined_result</span> <span class="o">=</span> <span class="n">interpolate_image</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">source_images</span><span class="p">,</span> <span class="n">ones</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">x_normalized</span><span class="p">,</span> <span class="n">y_normalized</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span>
+            <span class="n">interpolation_mode</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">del</span> <span class="n">source_images</span><span class="p">,</span> <span class="n">ones</span><span class="p">,</span> <span class="n">x_normalized</span><span class="p">,</span> <span class="n">y_normalized</span>
+        
+        
+        <span class="c1"># Create output array initialized with NaN</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">combined_result</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),</span> <span class="n">torch</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+        <span class="n">valid_pixels</span> <span class="o">=</span> <span class="n">combined_result</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span> <span class="o">&gt;</span> <span class="n">EPSILON</span>
+        
+        <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">valid_pixels</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">conserve_flux</span><span class="p">:</span>
+                <span class="c1"># Normalize by the footprint where valid</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">valid_pixels</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">combined_result</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()[</span><span class="n">valid_pixels</span><span class="p">]</span>
+                    <span class="o">/</span> <span class="n">combined_result</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()[</span><span class="n">valid_pixels</span><span class="p">]</span>
+                <span class="p">)</span>
+                
+                <span class="c1"># Free combined_result immediately</span>
+                <span class="k">del</span> <span class="n">combined_result</span>
+                
+                
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_jacobian</span><span class="p">:</span>
+                    
+                    <span class="c1"># OPTIMIZATION: Compute Jacobian determinant in-place without storing all components</span>
+                    <span class="c1"># Instead of storing Jxx, Jxy, Jyx, Jyy separately, compute det directly</span>
+                    
+                    <span class="c1"># Get gradients</span>
+                    <span class="n">dy_x</span><span class="p">,</span> <span class="n">dx_x</span> <span class="o">=</span> <span class="n">gradient2d</span><span class="p">(</span><span class="n">x_source</span><span class="p">)</span>  <span class="c1"># ∂x_in/∂y_out, ∂x_in/∂x_out</span>
+                    
+                    <span class="c1"># Compute first part of determinant: dx_x * dy_y</span>
+                    <span class="n">dy_y</span><span class="p">,</span> <span class="n">dx_y</span> <span class="o">=</span> <span class="n">gradient2d</span><span class="p">(</span><span class="n">y_source</span><span class="p">)</span>  <span class="c1"># ∂y_in/∂y_out, ∂y_in/∂x_out</span>
+                    
+                    <span class="c1"># Compute determinant in-place: det(J) = dx_x * dy_y - dy_x * dx_y</span>
+                    <span class="c1"># Do this operation in-place to save memory</span>
+                    <span class="n">jacobian_det</span> <span class="o">=</span> <span class="n">dx_x</span> <span class="o">*</span> <span class="n">dy_y</span>  <span class="c1"># Reuse dx_x memory</span>
+                    <span class="k">del</span> <span class="n">dy_y</span>  <span class="c1"># Free immediately</span>
+                    
+                    <span class="c1"># Subtract second term in-place</span>
+                    <span class="n">jacobian_det</span> <span class="o">-=</span> <span class="n">dy_x</span> <span class="o">*</span> <span class="n">dx_y</span>
+                    <span class="k">del</span> <span class="n">dx_x</span><span class="p">,</span> <span class="n">dy_x</span><span class="p">,</span> <span class="n">dx_y</span>  <span class="c1"># Free all gradient components</span>
+                    
+                    <span class="c1"># Apply scaling only where valid</span>
+                    <span class="n">result</span><span class="p">[</span><span class="n">valid_pixels</span><span class="p">]</span> <span class="o">*=</span> <span class="n">jacobian_det</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)[</span><span class="n">valid_pixels</span><span class="p">]</span>
+                    <span class="k">del</span> <span class="n">jacobian_det</span>
+                    
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">valid_pixels</span><span class="p">]</span> <span class="o">=</span> <span class="n">combined_result</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()[</span><span class="n">valid_pixels</span><span class="p">]</span>
+                <span class="k">del</span> <span class="n">combined_result</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">combined_result</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span> <span class="o">/</span> <span class="n">combined_result</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span>
+            <span class="k">del</span> <span class="n">combined_result</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;No valid pixels found in footprint! Using raw interpolated values&quot;</span>
+            <span class="p">)</span>
+        
+        <span class="k">del</span> <span class="n">valid_pixels</span><span class="p">,</span> <span class="n">x_source</span><span class="p">,</span> <span class="n">y_source</span>
+        
+        <span class="k">return</span> <span class="n">result</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="calculate_reprojection">
+<a class="viewcode-back" href="../../autoapi/dfreproject/reproject/index.html#dfreproject.reproject.calculate_reprojection">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">calculate_reprojection</span><span class="p">(</span>
+    <span class="n">source_hdus</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span>
+        <span class="n">PrimaryHDU</span><span class="p">,</span>
+        <span class="n">TensorHDU</span><span class="p">,</span>
+        <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">WCS</span><span class="p">,</span> <span class="n">Header</span><span class="p">]],</span>
+        <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">WCS</span><span class="p">,</span> <span class="n">Header</span><span class="p">]],</span>
+        <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">PrimaryHDU</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">WCS</span><span class="p">,</span> <span class="n">Header</span><span class="p">]]]],</span>
+    <span class="p">],</span>
+    <span class="n">target_wcs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">WCS</span><span class="p">,</span> <span class="n">Header</span><span class="p">],</span>
+    <span class="n">shape_out</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">order</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;nearest&quot;</span><span class="p">,</span>
+    <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">num_threads</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">requires_grad</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">conserve_flux</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">compute_jacobian</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reproject an astronomical image from a source WCS to a target WCS.</span>
+
+<span class="sd">    This high-level function provides a convenient interface for image reprojection,</span>
+<span class="sd">    handling all the necessary steps: WCS extraction, tensor creation, and interpolation.</span>
+<span class="sd">    It converts FITS HDU objects to the internal representation, performs the reprojection,</span>
+<span class="sd">    and returns the resulting image as a NumPy array or PyTorch tensor.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    source_hdus : Union[</span>
+<span class="sd">        PrimaryHDU,</span>
+<span class="sd">        TensorHDU,</span>
+<span class="sd">        Tuple[np.ndarray, Union[WCS, Header]],</span>
+<span class="sd">        Tuple[torch.Tensor, Union[WCS, Header]],</span>
+<span class="sd">        List[Union[PrimaryHDU, Tuple[np.ndarray, Union[WCS, Header]]]]</span>
+<span class="sd">    ]</span>
+<span class="sd">        The source image(s) to be reprojected, which can be a PrimaryHDU, TensorHDU,</span>
+<span class="sd">        a tuple of (data, WCS/Header), or a list of such items.</span>
+
+<span class="sd">    target_wcs : Union[WCS, Header]</span>
+<span class="sd">        WCS information for the target. If a Header is passed it will be converted to WCS.</span>
+
+<span class="sd">    shape_out: Optional[Tuple[int, int]]</span>
+<span class="sd">        Shape of the resampled array. If not provided, the output shape will match the input.</span>
+
+<span class="sd">    order : str, default &#39;nearest&#39;</span>
+<span class="sd">        The interpolation method to use when resampling the source image.</span>
+<span class="sd">        Options:</span>
+<span class="sd">        - &#39;nearest&#39; : Nearest neighbor interpolation (fastest, default)</span>
+<span class="sd">        - &#39;bilinear&#39; : Bilinear interpolation (good balance of speed/quality)</span>
+<span class="sd">        - &#39;bicubic&#39; : Bicubic interpolation (high quality, slow)</span>
+<span class="sd">        - &#39;lanczos&#39; : Lanczos 3-lobe interpolation (highest quality, slowest)</span>
+
+<span class="sd">    device: str, optional</span>
+<span class="sd">        Device to use for computations. Defaults to GPU if available, otherwise uses CPU.</span>
+
+<span class="sd">    num_threads: int, optional</span>
+<span class="sd">        Number of threads to use on CPU.</span>
+
+<span class="sd">    requires_grad: bool, optional</span>
+<span class="sd">        If True, enables autograd for PyTorch tensors.</span>
+
+<span class="sd">    conserve_flux: bool, optional</span>
+<span class="sd">        If True, enables flux conservation through footprint calculations.</span>
+<span class="sd">        By default, this is set to True.</span>
+
+<span class="sd">    compute_jacobian: bool, optional</span>
+<span class="sd">        If True, enables non-linear flux conservation through Jacobian calculation. Note</span>
+<span class="sd">        that this slightly increases RAM usage.</span>
+<span class="sd">        By default, this is set to True.</span>
+<span class="sd">        If there is no SIP distortion, users can set this to False.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray or torch.Tensor</span>
+<span class="sd">        The reprojected image as a numpy ndarray (default) or PyTorch tensor if</span>
+<span class="sd">        requires_grad=True.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    This function automatically:</span>
+<span class="sd">    - Detects and uses GPU acceleration if available</span>
+<span class="sd">    - Handles byte order conversion for tensor creation</span>
+<span class="sd">    - Converts data to float64 for processing</span>
+<span class="sd">    - Converts Header to WCS if needed</span>
+
+<span class="sd">    To save the result as a FITS file, convert the tensor back to a NumPy array</span>
+<span class="sd">    and create a new FITS HDU with the target WCS header.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; from astropy.io import fits</span>
+<span class="sd">    &gt;&gt;&gt; from astropy.wcs import WCS</span>
+<span class="sd">    &gt;&gt;&gt; from dfreproject.reproject import calculate_reprojection</span>
+<span class="sd">    &gt;&gt;&gt;</span>
+<span class="sd">    &gt;&gt;&gt; # Open source and target images</span>
+<span class="sd">    &gt;&gt;&gt; source_hdu = fits.open(&#39;source_image.fits&#39;)[0]</span>
+<span class="sd">    &gt;&gt;&gt; target_hdu = fits.open(&#39;target_grid.fits&#39;)[0]</span>
+<span class="sd">    &gt;&gt;&gt; target_wcs = WCS(target_hdu.header)</span>
+<span class="sd">    &gt;&gt;&gt;</span>
+<span class="sd">    &gt;&gt;&gt; # Perform reprojection with bilinear interpolation</span>
+<span class="sd">    &gt;&gt;&gt; reprojected = calculate_reprojection(</span>
+<span class="sd">    ...     source_hdus=source_hdu,</span>
+<span class="sd">    ...     target_wcs=target_wcs,</span>
+<span class="sd">    ...     shape_out=target_hdu.data.shape,</span>
+<span class="sd">    ...     order=&#39;bilinear&#39;</span>
+<span class="sd">    ... )</span>
+<span class="sd">    &gt;&gt;&gt; # Save as FITS</span>
+<span class="sd">    &gt;&gt;&gt; output_hdu = fits.PrimaryHDU(data=reprojected, header=target_hdu.header)</span>
+<span class="sd">    &gt;&gt;&gt; output_hdu.writeto(&#39;reprojected_image.fits&#39;, overwrite=True)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">normalize_to_hdu</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">PrimaryHDU</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">requires_grad</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">TensorHDU</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">TensorHDU</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">item</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="n">item</span><span class="o">.</span><span class="n">header</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">item</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">,</span> <span class="n">wcs_or_header</span> <span class="o">=</span> <span class="n">item</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">wcs_or_header</span><span class="p">,</span> <span class="n">Header</span><span class="p">):</span>
+                <span class="n">header</span> <span class="o">=</span> <span class="n">wcs_or_header</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">wcs_or_header</span><span class="p">,</span> <span class="n">WCS</span><span class="p">):</span>
+                <span class="n">header</span> <span class="o">=</span> <span class="n">wcs_or_header</span><span class="o">.</span><span class="n">to_header</span><span class="p">(</span><span class="n">relax</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected WCS or Header in tuple.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">requires_grad</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">TensorHDU</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="n">header</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">PrimaryHDU</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="n">header</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;Each item must be a PrimaryHDU, TensorHDU, or a (data, wcs/header) tuple.&quot;</span>
+            <span class="p">)</span>
+
+    <span class="c1"># Normalize source_input to a list of HDUs</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source_hdus</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="n">source_hdus</span> <span class="o">=</span> <span class="p">[</span><span class="n">normalize_to_hdu</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">source_hdus</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">source_hdus</span> <span class="o">=</span> <span class="p">[</span><span class="n">normalize_to_hdu</span><span class="p">(</span><span class="n">source_hdus</span><span class="p">)]</span>
+
+
+    <span class="c1"># Convert Header to WCS if needed</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target_wcs</span><span class="p">,</span> <span class="n">Header</span><span class="p">):</span>
+        <span class="n">target_wcs</span> <span class="o">=</span> <span class="n">WCS</span><span class="p">(</span><span class="n">target_wcs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">shape_out</span><span class="p">:</span>
+        <span class="n">shape_out</span> <span class="o">=</span> <span class="n">source_hdus</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span>
+    
+    <span class="n">reprojection</span> <span class="o">=</span> <span class="n">Reproject</span><span class="p">(</span>
+        <span class="n">source_hdus</span><span class="o">=</span><span class="n">source_hdus</span><span class="p">,</span>
+        <span class="n">target_wcs</span><span class="o">=</span><span class="n">target_wcs</span><span class="p">,</span>
+        <span class="n">shape_out</span><span class="o">=</span><span class="n">shape_out</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">num_threads</span><span class="o">=</span><span class="n">num_threads</span><span class="p">,</span>
+        <span class="n">requires_grad</span><span class="o">=</span><span class="n">requires_grad</span><span class="p">,</span>
+        <span class="n">conserve_flux</span><span class="o">=</span><span class="n">conserve_flux</span><span class="p">,</span>
+        <span class="n">compute_jacobian</span><span class="o">=</span><span class="n">compute_jacobian</span><span class="p">,</span>
+    <span class="p">)</span>
+    
+    
+    <span class="n">order</span> <span class="o">=</span> <span class="n">validate_interpolation_order</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">requires_grad</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">reprojection</span><span class="o">.</span><span class="n">interpolate_source_image</span><span class="p">(</span><span class="n">interpolation_mode</span><span class="o">=</span><span class="n">order</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">reprojection</span><span class="o">.</span><span class="n">interpolate_source_image</span><span class="p">(</span><span class="n">interpolation_mode</span><span class="o">=</span><span class="n">order</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+            <span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    
+    <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">empty_cache</span><span class="p">()</span>
+    
+    
+    <span class="k">return</span> <span class="n">result</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Carter Rhea.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

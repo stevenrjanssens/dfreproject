@@ -1,0 +1,41 @@
+dfreproject.utils
+=================
+
+.. py:module:: dfreproject.utils
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   dfreproject.utils.logger
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   dfreproject.utils.get_device
+   dfreproject.utils.gradient2d
+
+
+Module Contents
+---------------
+
+.. py:data:: logger
+
+.. py:function:: get_device()
+
+   Utility function to get the currently available PyTorch device.
+
+   :returns: Available torch device (either cuda or cpu).
+   :rtype: torch.device
+
+
+.. py:function:: gradient2d(tensor)
+
+   Compute gradients (dy, dx) of a 2D tensor using centered differences.
+
+
