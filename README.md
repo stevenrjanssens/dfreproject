@@ -178,6 +178,8 @@ https://doi.org/10.5281/zenodo.15170605
 - Based on the FITS WCS standard and SIP convention
 - Inspired by Astropy's reproject package
 - Accelerated with PyTorch
-- Documentation aided by Claude.ai
 
 The License for all past and present versions is the GPL-3.0.
+
+## AI Disclaimer
+`Claude.ai` was used to improve the documentation and help write the unit tests. The only portion of the code that `Claude.ai` wrote is related to the chunking of data to respect memory requirements.
