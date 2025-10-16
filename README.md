@@ -117,10 +117,10 @@ The `calculate_reprojection` function will internally handle all the translation
 
 ### Flux Conservation
 Flux conservation is the default behavior for `dfreproject`. Two options are available for flux conservation:
-1. Local flux density conservation: The image and a "ones" tensor are interpolated together, and the interpolated image is divided by the interpolated ones tensor (footprint) to correct for any flux density spreading during interpolation.
+1. Local flux density conservation: The image and a "ones" tensor are interpolated together, and the interpolated image is divided by the interpolated ones tensor (footprint) to correct for any flux density spreading during interpolation. This can affect the results at the edges of the interpolation.
 2. Jacobian correction for full flux conservation: Multiply the footprint-corrected flux by the determinant of the Jacobian to handle changes in area during the reprojection.
 
-Local flux density conservation is the default option; however, users can change this behavior by setting `conserve_flux=False`. If the transformation between one coordinate system and another is truly linear (i.e., there are no distortions such as SIP distortions), then the local flux density convervation computed with the footprint is sufficient. If this is the case, then the user can set `compute_jacobian=False`. However, this only achieves very modest gains in computation time so we suggest users leave this feature on.
+Local flux conservation is the default option; however, users can change this behavior by setting `conserve_flux=False`. If the transformation between one coordinate system and another is truly linear (i.e., there are no distortions such as SIP distortions), then the local flux convervation computed with the footprint is sufficient. If this is the case, then the user can set `compute_jacobian=False`. However, this only achieves very modest gains in computation time so we suggest users leave this feature on.
 
 ## Demos and Examples
 
