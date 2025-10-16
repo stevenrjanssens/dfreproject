@@ -9,7 +9,7 @@ from astropy.wcs import WCS
 from .lanczos import lanczos_grid_sample
 from .sip import apply_inverse_sip_distortion, apply_sip_distortion, get_sip_coeffs
 from .tensorhdu import TensorHDU
-from .utils import get_device, gradient2d
+from .utils import get_device, gradient2d, reproject_chunked
 
 logger = logging.getLogger(__name__)
 
@@ -639,26 +639,13 @@ class Reproject:
                 
                 
                 if self.compute_jacobian:
-                    
-                    # OPTIMIZATION: Compute Jacobian determinant in-place without storing all components
-                    # Instead of storing Jxx, Jxy, Jyx, Jyy separately, compute det directly
-                    
                     # Get gradients
                     dy_x, dx_x = gradient2d(x_source)  # ∂x_in/∂y_out, ∂x_in/∂x_out
-                    
-                    # Compute first part of determinant: dx_x * dy_y
                     dy_y, dx_y = gradient2d(y_source)  # ∂y_in/∂y_out, ∂y_in/∂x_out
-                    
-                    # Compute determinant in-place: det(J) = dx_x * dy_y - dy_x * dx_y
-                    # Do this operation in-place to save memory
-                    jacobian_det = dx_x * dy_y  # Reuse dx_x memory
-                    del dy_y  # Free immediately
-                    
-                    # Subtract second term in-place
+                    jacobian_det = dx_x * dy_y
+                    del dy_y
                     jacobian_det -= dy_x * dx_y
-                    del dx_x, dy_x, dx_y  # Free all gradient components
-                    
-                    # Apply scaling only where valid
+                    del dx_x, dy_x, dx_y
                     result[valid_pixels] *= jacobian_det.squeeze(0)[valid_pixels]
                     del jacobian_det
                     
@@ -693,6 +680,9 @@ def calculate_reprojection(
     requires_grad: bool = False,
     conserve_flux: bool = True,
     compute_jacobian: bool = True,
+    max_memory_mb: Optional[float] = None,
+    chunk_safety_factor: float = 0.8,
+    show_chunk_progress: bool = True,
 ):
     """
     Reproject an astronomical image from a source WCS to a target WCS.
@@ -746,6 +736,19 @@ def calculate_reprojection(
         By default, this is set to True.
         If there is no SIP distortion, users can set this to False.
 
+    max_memory_mb: Optional[float], optional
+        Maximum memory to use in megabytes for chunked processing. If None (default),
+        processes the entire image at once without chunking. Set this to enable
+        memory-limited chunked processing (e.g., 1000 for 1GB limit).
+
+    chunk_safety_factor: float, optional
+        Safety factor (0-1) for chunked processing. Default 0.8 means use 80% of
+        max_memory_mb for actual data, leaving 20% margin. Only used if max_memory_mb is set.
+
+    show_chunk_progress: bool, optional
+        Whether to log progress when using chunked processing. Default True.
+        Only used if max_memory_mb is set.
+
     Returns
     -------
     numpy.ndarray or torch.Tensor
@@ -759,6 +762,15 @@ def calculate_reprojection(
     - Handles byte order conversion for tensor creation
     - Converts data to float64 for processing
     - Converts Header to WCS if needed
+    - Processes in memory-constrained chunks if max_memory_mb is specified
+
+    **Chunked Processing:**
+    When max_memory_mb is set, the reprojection is computed in blocks to stay within
+    the specified memory limit. This is useful for:
+    - Very large output images
+    - Limited GPU memory
+    - Batch processing multiple images
+
 
     To save the result as a FITS file, convert the tensor back to a NumPy array
     and create a new FITS HDU with the target WCS header.
@@ -780,6 +792,15 @@ def calculate_reprojection(
     ...     target_wcs=target_wcs,
     ...     shape_out=target_hdu.data.shape,
     ...     order='bilinear'
+    ... )
+    >>>
+    >>> # Perform chunked reprojection with 2GB memory limit
+    >>> reprojected = calculate_reprojection(
+    ...     source_hdus=source_hdu,
+    ...     target_wcs=target_wcs,
+    ...     shape_out=(8000, 8000),
+    ...     order='bilinear',
+    ...     max_memory_mb=2000
     ... )
     >>> # Save as FITS
     >>> output_hdu = fits.PrimaryHDU(data=reprojected, header=target_hdu.header)
@@ -837,15 +858,24 @@ def calculate_reprojection(
     
     order = validate_interpolation_order(order)
 
-    if requires_grad:
-        result = reprojection.interpolate_source_image(interpolation_mode=order).cpu()
+    # Choose between chunked and non-chunked processing
+    if max_memory_mb is not None:
+        logger.info(f"Using chunked processing with {max_memory_mb} MB memory limit")
+        result = reproject_chunked(
+            reprojection,
+            max_memory_mb=max_memory_mb,
+            safety_factor=chunk_safety_factor,
+            interpolation_mode=order,
+            show_progress=show_chunk_progress
+        ).squeeze(0)
     else:
-        result = (
-            reprojection.interpolate_source_image(interpolation_mode=order)
-            .cpu()
-            .numpy()
-            .astype(np.float32)
-        )
+        result = reprojection.interpolate_source_image(interpolation_mode=order)
+
+    # Convert output format
+    if requires_grad:
+        result = result.cpu()
+    else:
+        result = result.cpu().numpy().astype(np.float32)
 
     
     torch.cuda.empty_cache()
