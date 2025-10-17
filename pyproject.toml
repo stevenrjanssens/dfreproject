@@ -14,7 +14,7 @@ authors = [
   { name = "Roberto Abraham", email = "roberto.abraham@dragonfly1000.com" },
   { name = "William P. Bowman", email = "william.bowman@dragonfly1000.com" },
   { name = "Deborah Lokhorst", email = "deborah.lokhorst@dragonfly1000.com" },
-  { name = "Seery Chen", email = "seery.chen@dragonfly1000.com" }
+  { name = "Seery Chen", email = "seery.chen@dragonfly1000.com" },
 ]
 description = "A high-performance Python package for reprojecting astronomical images between different coordinate systems with support for SIP distortion correction."
 readme = "README.md"
