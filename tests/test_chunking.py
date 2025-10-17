@@ -1,9 +1,9 @@
 import unittest
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import numpy as np
 import torch
-from astropy.io.fits import Header, PrimaryHDU
+from astropy.io.fits import PrimaryHDU
 from astropy.wcs import WCS
 
 # Import the functions to test
