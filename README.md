@@ -7,9 +7,7 @@ A high-performance Python package for reprojecting astronomical images between d
 [![codecov](https://codecov.io/gh/DragonflyTelescope/dfreproject/graph/badge.svg?token=409E407TN5)](https://codecov.io/gh/DragonflyTelescope/dfreproject)
 [![DOI](https://zenodo.org/badge/936088731.svg)](https://doi.org/10.5281/zenodo.15170605)
  [![status](https://joss.theoj.org/papers/7f22d1073d87a3e78820f37cf7d726f6/status.svg)](https://joss.theoj.org/papers/7f22d1073d87a3e78820f37cf7d726f6)
-
  [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/DragonflyTelescope/dfreproject/badge)](https://scorecard.dev/viewer/?uri=github.com/DragonflyTelescope/dfreproject)
-
 The idea behind this package was to make a stripped down version of the `reproject` package affiliated with astropy in order to reduce computational time.
 We achieve approximately 20X faster computations with this package using the GPU and 10X using the CPU for images taken by the Dragonfly Telephoto Array. Take a look at the demos for an example.
 We note that the only projection we currently support is the Tangential Gnomonic projection which is the most popular in optical astronomy.
@@ -86,7 +84,6 @@ output_hdu.writeto('reprojected_image.fits', overwrite=True)
 
 The arguments for `calculate_reprojection` are the same as for the standard reprojection options in the reproject package, i.e. `reproject_interp`, `reproject_adaptive`, or `reproject_exact`.
 
-
 In another scenario, it may be more advantageous to pass a tuple of a data array and a header object that have already been loaded into memory (i.e. not an HDU object). In that case, follow this example:
 
 ```python
@@ -140,7 +137,6 @@ jupyter notebook
 ## Documentation
 
 Comprehensive documentation is available at [https://dfreproject.readthedocs.io/](https://dfreproject.readthedocs.io/)
-
 The documentation includes:
 
 - API reference
@@ -151,7 +147,7 @@ The documentation includes:
 ## Running Tests
 The unit tests can be run using the following command:
 
-```shell
+```bash
 pytest
 ```
 
