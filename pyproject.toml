@@ -8,7 +8,13 @@ version = "1.3.0"
 dynamic = []
 authors = [
   { name = "Carter Rhea", email = "carter.rhea@dragonfly1000.com" },
-  { name = "Steven Janssens", email = "steven.janssens@dragonfly1000.com" }
+  { name = "Steven Janssens", email = "steven.janssens@dragonfly1000.com" },
+  { name = "Pieter van Dokkum", email = "pieter.vandokkum@dragonfly1000.com" },
+  { name = "Imad Pasha", email = "imad.pasha@dragonfly1000.com" },
+  { name = "Roberto Abraham", email = "roberto.abraham@dragonfly1000.com" },
+  { name = "William P. Bowman", email = "william.bowman@dragonfly1000.com" },
+  { name = "Deborah Lokhorst", email = "deborah.lokhorst@dragonfly1000.com" },
+  { name = "Seery Chen", email = "seery.chen@dragonfly1000.com" }
 ]
 description = "A high-performance Python package for reprojecting astronomical images between different coordinate systems with support for SIP distortion correction."
 readme = "README.md"
