@@ -119,6 +119,31 @@ output_hdu.writeto('reprojected_image.fits', overwrite=True)
 
 The `calculate_reprojection` function will internally handle all the translation so that the inputs are properly handled.
 
+### Reusing an Exposed Pixel Map
+
+If you are reprojecting repeatedly with the same source/target geometry, you can now expose and reuse the pixel map directly:
+
+```python
+from dfreproject.reproject import Reproject
+
+reproject = Reproject(
+    source_hdu=source_hdu,
+    target_wcs=target_wcs,
+    shape_out=target_hdu.data.shape,
+)
+
+# Step 1: compute the source-coordinate map once
+pixel_map = reproject.compute_pixel_map()
+
+# Step 2: apply interpolation using the same map
+result = reproject.apply_pixel_map(pixel_map, interpolation_mode="bilinear")
+
+# Convenience wrapper (equivalent to the two steps above):
+result2 = reproject.interpolate_source_image(interpolation_mode="bilinear")
+```
+
+`pixel_map` is returned as `(x_source, y_source)` in source-image pixel coordinates (not normalized `grid_sample` coordinates).
+
 ### Flux Conservation
 Flux conservation is the default behavior for `dfreproject`. Two options are available for flux conservation:
 1. Local flux density conservation: The image and a "ones" tensor are interpolated together, and the interpolated image is divided by the interpolated ones tensor (footprint) to correct for any flux density spreading during interpolation. This can affect the results at the edges of the interpolation.
