@@ -565,9 +565,110 @@ class Reproject:
 
         return batch_x_pixel, batch_y_pixel
 
+    def compute_pixel_map(self):
+        """
+        Compute and return source-space pixel coordinates for reprojection.
+
+        This method exposes the pixel mapping step used by
+        :meth:`interpolate_source_image`, allowing callers to inspect, cache,
+        or reuse the coordinate transform without immediately interpolating
+        image values.
+
+        Returns
+        -------
+        Tuple[torch.Tensor, torch.Tensor]
+            ``(x_source, y_source)`` pixel coordinates in source-image index
+            space (unnormalized; not in ``grid_sample`` [-1, 1] coordinates).
+        """
+        return self.calculate_sourceCoords()
+
+    def apply_pixel_map(
+        self,
+        pixel_map: Tuple[torch.Tensor, torch.Tensor],
+        interpolation_mode: str = "bilinear",
+    ) -> torch.Tensor:
+        """
+        Interpolate the source image using a precomputed pixel map.
+
+        Use this method with a map returned by :meth:`compute_pixel_map` when
+        you want to reuse the same coordinate transform across repeated
+        interpolation calls.
+
+        Parameters
+        ----------
+        pixel_map : Tuple[torch.Tensor, torch.Tensor]
+            ``(x_source, y_source)`` coordinates from
+            :meth:`compute_pixel_map`.
+        interpolation_mode : str, default 'bilinear'
+            Interpolation algorithm. Options: ``'nearest'``, ``'bilinear'``,
+            ``'bicubic'``, ``'lanczos'``.
+
+        Returns
+        -------
+        torch.Tensor
+            Reprojected image on the target grid.
+        """
+        x_source, y_source = pixel_map
+        B, H, W = self.batch_source_images.shape
+
+        x_normalized = 2.0 * (x_source / (W - 1)) - 1.0
+        y_normalized = 2.0 * (y_source / (H - 1)) - 1.0
+
+        source_images = self.batch_source_images.unsqueeze(1)
+        ones = torch.ones_like(source_images)
+
+        combined_result = interpolate_image(
+            torch.cat([source_images, ones], dim=1),
+            torch.stack([x_normalized, y_normalized], dim=-1),
+            interpolation_mode,
+        )
+        del source_images, ones, x_normalized, y_normalized
+
+        result = torch.full_like(combined_result[:, 0].squeeze(), torch.nan)
+        valid_pixels = combined_result[:, 1].squeeze() > EPSILON
+
+        if torch.any(valid_pixels):
+            if self.conserve_flux:
+                result[valid_pixels] = (
+                    combined_result[:, 0].squeeze()[valid_pixels]
+                    / combined_result[:, 1].squeeze()[valid_pixels]
+                )
+                del combined_result
+
+                if self.compute_jacobian:
+                    dy_x, dx_x = gradient2d(x_source)
+                    dy_y, dx_y = gradient2d(y_source)
+                    jacobian_det = dx_x * dy_y
+                    del dy_y
+                    jacobian_det -= dy_x * dx_y
+                    del dx_x, dy_x, dx_y
+                    result[valid_pixels] *= jacobian_det.squeeze(0)[valid_pixels]
+                    del jacobian_det
+            else:
+                result[valid_pixels] = combined_result[:, 0].squeeze()[valid_pixels]
+                del combined_result
+        else:
+            result = combined_result[:, 0].squeeze() / combined_result[:, 1].squeeze()
+            del combined_result
+            logger.warning(
+                "No valid pixels found in footprint! Using raw interpolated values"
+            )
+
+        del valid_pixels
+        return result
+
     def interpolate_source_image(self, interpolation_mode="bilinear") -> torch.Tensor:
         """
         Interpolate the source image at the calculated source coordinates with flux conservation.
+
+        This is a convenience wrapper around:
+
+        1. :meth:`compute_pixel_map`
+        2. :meth:`apply_pixel_map`
+
+        If you need access to the pixel map itself, call
+        :meth:`compute_pixel_map` directly and pass it to
+        :meth:`apply_pixel_map`.
 
         This method performs the actual pixel resampling needed for dfreproject
         while preserving the total flux (photometric accuracy) by using a footprint correction and the Jacobian of the transformation.
@@ -613,63 +714,11 @@ class Reproject:
         Areas in the target image that map outside the source image boundaries
         will be filled with NaNs.
         """
-        # Get source coordinates
-        x_source, y_source = self.calculate_sourceCoords()
-        B, H, W = self.batch_source_images.shape
-
-        # Normalize coordinates
-        x_normalized = 2.0 * (x_source / (W - 1)) - 1.0
-        y_normalized = 2.0 * (y_source / (H - 1)) - 1.0
-
-        # Prepare images and grid for grid_sample
-        source_images = self.batch_source_images.unsqueeze(1)  # [B, 1, H, W]
-        ones = torch.ones_like(source_images)
-
-        # Combine images with ones for footprint calculation
-        combined_result = interpolate_image(
-            torch.cat([source_images, ones], dim=1),
-            torch.stack([x_normalized, y_normalized], dim=-1),
-            interpolation_mode,
-        )
-        del source_images, ones, x_normalized, y_normalized
-
-        # Create output array initialized with NaN
-        result = torch.full_like(combined_result[:, 0].squeeze(), torch.nan)
-        valid_pixels = combined_result[:, 1].squeeze() > EPSILON
-        # Apply footprint correction only where footprint is significant
-        if torch.any(valid_pixels):
-            if self.conserve_flux:
-                # Normalize by the footprint where valid
-                result[valid_pixels] = (
-                    combined_result[:, 0].squeeze()[valid_pixels]
-                    / combined_result[:, 1].squeeze()[valid_pixels]
-                )
-
-                # Free combined_result immediately
-                del combined_result
-
-                if self.compute_jacobian:
-                    # Get gradients
-                    dy_x, dx_x = gradient2d(x_source)  # ∂x_in/∂y_out, ∂x_in/∂x_out
-                    dy_y, dx_y = gradient2d(y_source)  # ∂y_in/∂y_out, ∂y_in/∂x_out
-                    jacobian_det = dx_x * dy_y
-                    del dy_y
-                    jacobian_det -= dy_x * dx_y
-                    del dx_x, dy_x, dx_y
-                    result[valid_pixels] *= jacobian_det.squeeze(0)[valid_pixels]
-                    del jacobian_det
-            else:
-                result[valid_pixels] = combined_result[:, 0].squeeze()[valid_pixels]
-                del combined_result
-        else:
-            result = combined_result[:, 0].squeeze() / combined_result[:, 1].squeeze()
-            del combined_result
-            logger.warning(
-                "No valid pixels found in footprint! Using raw interpolated values"
-            )
-
-        del valid_pixels, x_source, y_source
-
+        # Convenience path: compute + apply in one call.
+        pixel_map = self.compute_pixel_map()
+        result = self.apply_pixel_map(pixel_map, interpolation_mode)
+        x_source, y_source = pixel_map
+        del x_source, y_source
         return result
 
 
