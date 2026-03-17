@@ -1,81 +1,235 @@
 
-
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" data-content_root="../../">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>dfreproject.reproject &mdash; dfreproject  documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
-      <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
-      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+<html class="no-js" lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    
+    <meta name="docsearch:name" content="dfreproject" />
+    <meta name="docsearch:package_type" content="" />
+    <meta name="docsearch:release" content="" />
+    <meta name="docsearch:version" content="" />
+    
+      <meta name="theme-color" content="#0DCAF0" />
+    
+    
+      <title>dfreproject.reproject &mdash; dfreproject  documentation</title>
+    
+    <link rel="canonical" href="_modules/dfreproject/reproject" />
+          <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8e8a900e" /><!-- add (1) -->
+          <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" /><!-- add (1) -->
+          <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" /><!-- add (1) -->
+          <link rel="stylesheet" type="text/css" href="../../_static/sphinx-nefertiti-default.min.css?v=0c1bdb5f" /><!-- add (1) -->
+          <link rel="stylesheet" type="text/css" href="../../_static/fonts/nunito/stylesheet.css?v=abf98f06" /><!-- add (1) -->
+          <link rel="stylesheet" type="text/css" href="../../_static/fonts/ubuntu-sans-mono/stylesheet.css?v=8616a587" /><!-- add (1) -->
+          <link rel="stylesheet" type="text/css" href="../../_static/pygments-dark.css?v=2de69186" /><!-- add (1) -->
+          <link rel="stylesheet" type="text/css" href="../../_static/pygments-light.css?v=970f37b1" /><!-- add (1) -->
+          <link rel="stylesheet" type="text/css" href="../../_static/bootstrap-icons.min.css?v=44730005" /><!-- add (1) -->
+        <link rel="index" title="Index" href="../../genindex.html" />
+        <link rel="search" title="Search" href="../../search.html" />
+        <link rel="top" title="dfreproject  documentation" href="#" />
+        <link rel="up" title="Module code" href="../index.html" />
+    <style>
+      :root {
+        --nftt-body-font-family: "Nunito", var(--nftt-font-sans-serif) !important;
+        --nftt-font-monospace: "Ubuntu Sans Mono", var(--nftt-font-family-monospace) !important;
+        --nftt-project-name-font: var(--nftt-body-font-family);
+        --nftt-documentation-font: var(--nftt-body-font-family);
+        --nftt-doc-headers-font: "Georgia", var(--nftt-documentation-font);}
 
-  
-      <script src="../../_static/jquery.js?v=5d32c60e"></script>
-      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
-      <script src="../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
-      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
-      <script src="../../_static/copybutton.js?v=f281be69"></script>
-      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-    <script src="../../_static/js/theme.js"></script>
-    <link rel="index" title="Index" href="../../genindex.html" />
-    <link rel="search" title="Search" href="../../search.html" /> 
-</head>
+      h1 *,
+      h2 *,
+      h3 *,
+      h4 *,
+      h5 *,
+      h6 * {
+        font-size: inherit;
+      }
 
-<body class="wy-body-for-nav"> 
-  <div class="wy-grid-for-nav">
-    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
-      <div class="wy-side-scroll">
-        <div class="wy-side-nav-search" >
-
-          
-          
-          <a href="../../index.html" class="icon icon-home">
-            dfreproject
-          </a>
-<div role="search">
-  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
-    <input type="hidden" name="check_keywords" value="yes" />
-    <input type="hidden" name="area" value="default" />
-  </form>
-</div>
-        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../methodology.html">Astronomical Coordinate Transformations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../examples.html">Examples</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../autoapi/index.html">API Reference</a></li>
-</ul>
-
+      .light pre,
+      .dark pre {
+        line-height: var(--nftt-pre-line-height, 140%);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="back-to-top-container" class="position-fixed start-50 translate-middle-x">
+      <button id="back-to-top" type="button" class="d-none btn btn-neutral btn-sm shadow px-4" data-bs-toggle="button">Back to top</button>
+    </div>
+    <header id="snftt-nav-bar" class="navbar navbar-expand-xl navbar-dark nftt-navbar flex-column fixed-top">
+      <div class="skip-links container-fluid visually-hidden-focusable overflow-hidden justify-content-start flex-grow-1">
+        <div class="border-bottom mb-2 pb-2 w-100">
+          <a class="d-none d-md-inline-flex p-2 m-1" href="#sidebar-filter">Skip to index filter</a>
+          <a class="d-inline-flex p-2 m-1" href="#content">Skip to main content</a>
         </div>
       </div>
-    </nav>
-
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
-          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../index.html">dfreproject</a>
-      </nav>
-
-      <div class="wy-nav-content">
-        <div class="rst-content">
-          <div role="navigation" aria-label="Page navigation">
-  <ul class="wy-breadcrumbs">
-      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
-      <li class="breadcrumb-item active">dfreproject.reproject</li>
-      <li class="wy-breadcrumbs-aside">
+      <nav class="container-xxl nftt-gutter flex-nowrap" aria-label="Main navigation">
+        <div class="nftt-navbar-toggler">
+          <button class="navbar-toggler p-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar" aria-label="Toggle documentation navigation">
+            <i class="bi bi-list"></i>
+          </button>
+        </div>
+          <a href="../../index.html"
+             class="navbar-brand"
+          ><span class="brand-text">dfreproject</span><span class="brand-short-text">dfreproject</span></a>
+        
+        
+        <div class="d-flex d-xl-none">
+          <button class="navbar-toggler p-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#nfttSearch" aria-controls="nfttSearch" aria-label="Search">
+            <i class="bi bi-search"></i>
+          </button>
+          <button class="navbar-toggler p-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#nfttNavbar" aria-controls="nfttNavbar" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+        </div>
+        
+<div class="offcanvas-xl offcanvas-end flex-grow-1" tabindex="-1" id="nfttSearch" aria-labelledby="nfttSearchOffcanvasLabel" data-bs-scroll="true">
+  <div class="offcanvas-header px-4 pb-0">
+    <h5 class="offcanvas-title fw-bold" id="nfttSearchOffcanvasLabel">Search the documentation</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close" data-bs-target="#nfttSearch"></button>
+  </div>
+  <div class="offcanvas-body p-4 pt-0 p-xl-0 ps-xl-4">
+    <hr class="d-xl-none text-white-50">
+    <ul class="navbar-nav flex-row align-items-center flex-wrap ms-md-auto">
+      <li class="nav-item col-12 col-xl-auto">
+        <form id="nftt-search-form" action="../../search.html" method="get">
+          <div class="input-group">
+            <input type="text" name="q" class="form-control search-input" placeholder="Search" aria-label="Search" aria-describedby="button-search">
+            <input type="hidden" name="check_keywords" value="yes" />
+            <input type="hidden" name="area" value="default" />
+            <button class="btn btn-primary" type="submit" id="button-search" aria-label="Search"><i class="bi bi-search"></i></button>
+          </div>
+        </form>
       </li>
-  </ul>
-  <hr/>
+    </ul>
+  </div>
 </div>
-          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
-           <div itemprop="articleBody">
-             
-  <h1>Source code for dfreproject.reproject</h1><div class="highlight"><pre>
+
+        <div class="offcanvas-xl offcanvas-end" tabindex="-1" id="nfttNavbar" aria-labelledby="nfttNavbarOffcanvasLabel" data-bs-scroll="true">
+          <div class="offcanvas-header px-4 pb-0">
+            <div class="offcanvas-title navbar-brand" id="nfttNavbarOffcanvasLabel"><span class="brand-short-text">dfreproject</span></div>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close" data-bs-target="#nfttNavbar"></button>
+          </div>
+          <div class="offcanvas-body p-4 pt-0 p-xl-0 px-xl-3">
+            <hr class="d-xl-none text-white-50">
+            <ul class="navbar-nav flex-row align-items-center flex-wrap ms-lg-auto">
+              
+              
+              
+              
+              
+              <!-- lightdark-dropdown.html -->
+<li class="nav-item dropdown">
+  <a class="nav-link d-flex py-2 px-0 px-xl-2 dropdown-toggle align-items-center" id="snftt-luz" href="#" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" aria-label="Change appearance">
+    <i class="bi bi-circle-half" data-snftt-luz-icon-active></i>
+    <span id="snftt-luz-text" class="d-xl-none ms-2">Change appearance</span>
+  </a>
+  <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="snftt-luz-text">
+    <li>
+      <h6 class="dropdown-header">Change appearance</h6>
+    </li>
+    <li>
+      <a class="dropdown-item d-flex align-items-center" data-snftt-luz="light" href="#" aria-pressed="false">
+        <span>
+          <i class="bi bi-sun" data-snftt-luz-icon="light"></i>
+        </span>
+        <span class="ms-3">Light</span>
+        <i class="bi bi-check ms-auto"></i>
+      </a>
+    </li>
+    <li>
+      <a class="dropdown-item d-flex align-items-center" data-snftt-luz="dark" href="#" aria-pressed="false">
+        <span>
+          <i class="bi bi-moon-stars" data-snftt-luz-icon="dark"></i>
+        </span>
+        <span class="ms-3">Dark</span>
+        <i class="bi bi-check ms-auto"></i>
+      </a>
+    </li>
+    <li>
+      <a class="dropdown-item current d-flex align-items-center" data-snftt-luz="default" href="#" aria-pressed="false">
+        <span>
+          <i class="bi bi-circle-half" data-snftt-luz-icon="default"></i>
+        </span>
+        <span class="ms-3">Automatic</span>
+        <i class="bi bi-check ms-auto"></i>
+      </a>
+    </li>
+  </ul>
+</li>
+            </ul>
+          </div>
+        </div>
+      </nav>
+      
+    </header>
+
+    <div class="container-fluid flex-grow-1">
+      <div class="nftt-gutter nftt-page">
+        <aside class="nftt-sidebar ">
+          <div class="nftt-sidebar-content">
+            
+            <div class="title d-none d-xl-none">
+              <i class="bi bi-book"></i>&nbsp;&nbsp;<span>Index</span>
+            </div>
+            <div id="sidebar" tabindex="-1" class="offcanvas-xl offcanvas-start" aria-labelledby="nfttSidebarOffcanvasLabel">
+                <!-- sidebartemplate: "globaltoc.html" --><div class="offcanvas-header border-bottom">
+  <h5 class="offcanvas-title fw-bold" id="nfttSidebarOffcanvasLabel">
+    Index
+  </h5>
+  <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close" data-bs-target="#sidebar"></button>
+</div>
+
+<div class="offcanvas-body">
+  <nav class="toc" aria-label="Main menu">
+    <div class="mb-3 p-1 pb-4 border-bottom">
+      <input id="sidebar-filter" type="text" name="filter" class="form-control form-control-sm" placeholder="index filter" aria-label="index filter">
+    </div>
+    <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../methodology.html">Astronomical Coordinate Transformations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/reprojection-comparison.html">Test of reprojection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/Coordinate-Comparison.html">Comparison of Astropy vs Torch implementation of coordinate transformation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/reprojection-comparison-mini.html">Comparison of interpolation methods</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../autoapi/index.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../autoapi/dfreproject/index.html">dfreproject</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../autoapi/dfreproject/lanczos/index.html">dfreproject.lanczos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../autoapi/dfreproject/reproject/index.html">dfreproject.reproject</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../autoapi/dfreproject/sip/index.html">dfreproject.sip</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../autoapi/dfreproject/tensorhdu/index.html">dfreproject.tensorhdu</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../autoapi/dfreproject/utils/index.html">dfreproject.utils</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  </nav>
+  <template data-toggle-item-template>
+    <button class="btn btn-sm btn-link toctree-expand" type="button">
+      <i class="bi bi-caret-right"></i>
+      <span class="visually-hidden">Toggle menu contents</span>
+    </button>
+  </template>
+</div>
+            </div>
+            
+          </div>
+        </aside>
+        <article id="content" class="nftt-content" role="main">
+          <div>
+            <nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="../../index.html">Start</a></li>
+      <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+    <li class="breadcrumb-item active" aria-current="page">dfreproject.reproject</li>
+  </ol>
+</nav>
+    <h1>Source code for dfreproject.reproject</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
@@ -204,7 +358,7 @@
 <span class="sd">    torch.Tensor</span>
 <span class="sd">        Interpolated image.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">interpolation_mode</span> <span class="o">==</span> <span class="s1">&#39;lanczos&#39;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">interpolation_mode</span> <span class="o">==</span> <span class="s2">&quot;lanczos&quot;</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">lanczos_grid_sample</span><span class="p">(</span><span class="n">source_image</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">padding_mode</span><span class="o">=</span><span class="s2">&quot;zeros&quot;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">grid_sample</span><span class="p">(</span>
@@ -509,7 +663,9 @@
         <span class="n">pixel_offsets</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">u</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">v</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
         <span class="k">del</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span>  <span class="c1"># Free immediately</span>
 
-        <span class="n">transformed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bmm</span><span class="p">(</span><span class="n">pixel_offsets</span><span class="p">,</span> <span class="n">CD_matrix</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">transformed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bmm</span><span class="p">(</span>
+            <span class="n">pixel_offsets</span><span class="p">,</span> <span class="n">CD_matrix</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span>
         <span class="k">del</span> <span class="n">pixel_offsets</span><span class="p">,</span> <span class="n">CD_matrix</span>
 
         <span class="n">x_scaled</span> <span class="o">=</span> <span class="n">transformed</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span><span class="p">)</span>
@@ -523,13 +679,17 @@
         <span class="c1"># Compute phi efficiently</span>
         <span class="n">phi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
         <span class="n">non_zero_r</span> <span class="o">=</span> <span class="n">r</span> <span class="o">&gt;</span> <span class="mi">0</span>  <span class="c1"># Avoid creating unnecessary boolean tensor</span>
-        <span class="n">phi</span><span class="p">[</span><span class="n">non_zero_r</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="o">-</span><span class="n">x_scaled</span><span class="p">[</span><span class="n">non_zero_r</span><span class="p">],</span> <span class="n">y_scaled</span><span class="p">[</span><span class="n">non_zero_r</span><span class="p">]))</span>
+        <span class="n">phi</span><span class="p">[</span><span class="n">non_zero_r</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="o">-</span><span class="n">x_scaled</span><span class="p">[</span><span class="n">non_zero_r</span><span class="p">],</span> <span class="n">y_scaled</span><span class="p">[</span><span class="n">non_zero_r</span><span class="p">])</span>
+        <span class="p">)</span>
         <span class="k">del</span> <span class="n">x_scaled</span><span class="p">,</span> <span class="n">y_scaled</span><span class="p">,</span> <span class="n">non_zero_r</span>
 
         <span class="n">phi_rad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span>
         <span class="k">del</span> <span class="n">phi</span>
 
-        <span class="n">theta_rad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">r0</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>  <span class="c1"># Direct computation without intermediate conversions</span>
+        <span class="n">theta_rad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span>
+            <span class="n">r0</span><span class="p">,</span> <span class="n">r</span>
+        <span class="p">)</span>  <span class="c1"># Direct computation without intermediate conversions</span>
         <span class="k">del</span> <span class="n">r</span>
 
         <span class="c1"># Pre-compute trig values</span>
@@ -552,8 +712,7 @@
 
         <span class="c1"># Compute ra (reuse tensors where possible)</span>
         <span class="n">ra_rad</span> <span class="o">=</span> <span class="n">ra0_rad</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span>
-            <span class="o">-</span><span class="n">cos_theta</span> <span class="o">*</span> <span class="n">sin_phi</span><span class="p">,</span>
-            <span class="n">sin_theta</span> <span class="o">*</span> <span class="n">cos_dec0</span> <span class="o">-</span> <span class="n">cos_theta</span> <span class="o">*</span> <span class="n">sin_dec0</span> <span class="o">*</span> <span class="n">cos_phi</span>
+            <span class="o">-</span><span class="n">cos_theta</span> <span class="o">*</span> <span class="n">sin_phi</span><span class="p">,</span> <span class="n">sin_theta</span> <span class="o">*</span> <span class="n">cos_dec0</span> <span class="o">-</span> <span class="n">cos_theta</span> <span class="o">*</span> <span class="n">sin_dec0</span> <span class="o">*</span> <span class="n">cos_phi</span>
         <span class="p">)</span>
         <span class="k">del</span> <span class="n">sin_theta</span><span class="p">,</span> <span class="n">cos_theta</span><span class="p">,</span> <span class="n">sin_phi</span><span class="p">,</span> <span class="n">cos_phi</span><span class="p">,</span> <span class="n">sin_dec0</span><span class="p">,</span> <span class="n">cos_dec0</span>
 
@@ -590,15 +749,17 @@
 
         <span class="c1"># Process each source image&#39;s coordinates</span>
         <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">B</span><span class="p">):</span>
-
             <span class="c1"># Calculate sky coords for just this batch element</span>
             <span class="c1"># Extract single batch element from grid</span>
-            <span class="n">x_grid_b</span> <span class="o">=</span> <span class="n">x_grid</span><span class="p">[</span><span class="n">b</span><span class="p">:</span><span class="n">b</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># Keep batch dimension</span>
-            <span class="n">y_grid_b</span> <span class="o">=</span> <span class="n">y_grid</span><span class="p">[</span><span class="n">b</span><span class="p">:</span><span class="n">b</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">x_grid_b</span> <span class="o">=</span> <span class="n">x_grid</span><span class="p">[</span><span class="n">b</span> <span class="p">:</span> <span class="n">b</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>  <span class="c1"># Keep batch dimension</span>
+            <span class="n">y_grid_b</span> <span class="o">=</span> <span class="n">y_grid</span><span class="p">[</span><span class="n">b</span> <span class="p">:</span> <span class="n">b</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
 
             <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_skyCoords</span><span class="p">(</span><span class="n">x_grid_b</span><span class="p">,</span> <span class="n">y_grid_b</span><span class="p">)</span>
             <span class="n">ra</span> <span class="o">=</span> <span class="n">ra</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># Remove batch dimension</span>
             <span class="n">dec</span> <span class="o">=</span> <span class="n">dec</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="c1"># Free grid slices immediately</span>
+            <span class="k">del</span> <span class="n">x_grid_b</span><span class="p">,</span> <span class="n">y_grid_b</span>
 
             <span class="c1"># Get WCS parameters for this specific source image</span>
             <span class="n">source_wcs_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_source_wcs_params</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>
@@ -616,22 +777,32 @@
 
             <span class="c1"># Convert from world to native spherical coordinates</span>
             <span class="n">y_phi</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dec_rad</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">ra_rad</span> <span class="o">-</span> <span class="n">ra0_rad</span><span class="p">)</span>
-            <span class="n">x_phi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">dec_rad</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dec0_rad</span><span class="p">)</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dec_rad</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">dec0_rad</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">ra_rad</span> <span class="o">-</span> <span class="n">ra0_rad</span><span class="p">)</span>
+            <span class="n">x_phi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">dec_rad</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dec0_rad</span><span class="p">)</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span>
+                <span class="n">dec_rad</span>
+            <span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">dec0_rad</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">ra_rad</span> <span class="o">-</span> <span class="n">ra0_rad</span><span class="p">)</span>
             <span class="n">phi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">y_phi</span><span class="p">,</span> <span class="n">x_phi</span><span class="p">))</span>
             <span class="k">del</span> <span class="n">x_phi</span><span class="p">,</span> <span class="n">y_phi</span>
 
             <span class="n">theta</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span>
                 <span class="n">torch</span><span class="o">.</span><span class="n">arcsin</span><span class="p">(</span>
                     <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">dec_rad</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">dec0_rad</span><span class="p">)</span>
-                    <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dec_rad</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dec0_rad</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">ra_rad</span> <span class="o">-</span> <span class="n">ra0_rad</span><span class="p">)</span>
+                    <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dec_rad</span><span class="p">)</span>
+                    <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dec0_rad</span><span class="p">)</span>
+                    <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">ra_rad</span> <span class="o">-</span> <span class="n">ra0_rad</span><span class="p">)</span>
                 <span class="p">)</span>
             <span class="p">)</span>
             <span class="k">del</span> <span class="n">ra_rad</span><span class="p">,</span> <span class="n">dec_rad</span><span class="p">,</span> <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span>
 
             <span class="c1"># Apply TAN projection</span>
-            <span class="n">sin_phi</span><span class="p">,</span> <span class="n">cos_phi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">phi</span><span class="p">)),</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">phi</span><span class="p">))</span>
+            <span class="n">sin_phi</span><span class="p">,</span> <span class="n">cos_phi</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">phi</span><span class="p">)),</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">phi</span><span class="p">)),</span>
+            <span class="p">)</span>
             <span class="k">del</span> <span class="n">phi</span>
-            <span class="n">sin_theta</span><span class="p">,</span> <span class="n">cos_theta</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">theta</span><span class="p">)),</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">theta</span><span class="p">))</span>
+            <span class="n">sin_theta</span><span class="p">,</span> <span class="n">cos_theta</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">theta</span><span class="p">)),</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">theta</span><span class="p">)),</span>
+            <span class="p">)</span>
             <span class="k">del</span> <span class="n">theta</span>
 
             <span class="c1"># Check for singularity</span>
@@ -671,9 +842,110 @@
             <span class="c1"># Add reference pixel</span>
             <span class="n">batch_x_pixel</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="n">u</span> <span class="o">+</span> <span class="p">(</span><span class="n">crpix</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
             <span class="n">batch_y_pixel</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span> <span class="o">+</span> <span class="p">(</span><span class="n">crpix</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-            <span class="k">del</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">crpix</span><span class="p">,</span> <span class="n">crval</span><span class="p">,</span> <span class="n">pc_matrix</span><span class="p">,</span> <span class="n">cdelt</span>
+            <span class="k">del</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span>
+
+            <span class="c1"># Clear references to WCS parameters to aid garbage collection</span>
+            <span class="k">del</span> <span class="n">crpix</span><span class="p">,</span> <span class="n">crval</span><span class="p">,</span> <span class="n">pc_matrix</span><span class="p">,</span> <span class="n">cdelt</span><span class="p">,</span> <span class="n">sip_coeffs</span><span class="p">,</span> <span class="n">source_wcs_params</span>
 
         <span class="k">return</span> <span class="n">batch_x_pixel</span><span class="p">,</span> <span class="n">batch_y_pixel</span></div>
+
+
+<div class="viewcode-block" id="Reproject.compute_pixel_map">
+<a class="viewcode-back" href="../../autoapi/dfreproject/reproject/index.html#dfreproject.reproject.Reproject.compute_pixel_map">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_pixel_map</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute and return source-space pixel coordinates for reprojection.</span>
+
+<span class="sd">        This method exposes the pixel mapping step used by</span>
+<span class="sd">        :meth:`interpolate_source_image`, allowing callers to inspect, cache,</span>
+<span class="sd">        or reuse the coordinate transform without immediately interpolating</span>
+<span class="sd">        image values.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Tuple[torch.Tensor, torch.Tensor]</span>
+<span class="sd">            ``(x_source, y_source)`` pixel coordinates in source-image index</span>
+<span class="sd">            space (unnormalized; not in ``grid_sample`` [-1, 1] coordinates).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_sourceCoords</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Reproject.apply_pixel_map">
+<a class="viewcode-back" href="../../autoapi/dfreproject/reproject/index.html#dfreproject.reproject.Reproject.apply_pixel_map">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">apply_pixel_map</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">pixel_map</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">interpolation_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;bilinear&quot;</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Interpolate the source image using a precomputed pixel map.</span>
+
+<span class="sd">        Use this method with a map returned by :meth:`compute_pixel_map` when</span>
+<span class="sd">        you want to reuse the same coordinate transform across repeated</span>
+<span class="sd">        interpolation calls.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        pixel_map : Tuple[torch.Tensor, torch.Tensor]</span>
+<span class="sd">            ``(x_source, y_source)`` coordinates from</span>
+<span class="sd">            :meth:`compute_pixel_map`.</span>
+<span class="sd">        interpolation_mode : str, default &#39;bilinear&#39;</span>
+<span class="sd">            Interpolation algorithm. Options: ``&#39;nearest&#39;``, ``&#39;bilinear&#39;``,</span>
+<span class="sd">            ``&#39;bicubic&#39;``, ``&#39;lanczos&#39;``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            Reprojected image on the target grid.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x_source</span><span class="p">,</span> <span class="n">y_source</span> <span class="o">=</span> <span class="n">pixel_map</span>
+        <span class="n">B</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_source_images</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="n">x_normalized</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">x_source</span> <span class="o">/</span> <span class="p">(</span><span class="n">W</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="o">-</span> <span class="mf">1.0</span>
+        <span class="n">y_normalized</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">y_source</span> <span class="o">/</span> <span class="p">(</span><span class="n">H</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="o">-</span> <span class="mf">1.0</span>
+
+        <span class="n">source_images</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_source_images</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">ones</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">source_images</span><span class="p">)</span>
+
+        <span class="n">combined_result</span> <span class="o">=</span> <span class="n">interpolate_image</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">source_images</span><span class="p">,</span> <span class="n">ones</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">x_normalized</span><span class="p">,</span> <span class="n">y_normalized</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span>
+            <span class="n">interpolation_mode</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">del</span> <span class="n">source_images</span><span class="p">,</span> <span class="n">ones</span><span class="p">,</span> <span class="n">x_normalized</span><span class="p">,</span> <span class="n">y_normalized</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">combined_result</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),</span> <span class="n">torch</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+        <span class="n">valid_pixels</span> <span class="o">=</span> <span class="n">combined_result</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span> <span class="o">&gt;</span> <span class="n">EPSILON</span>
+
+        <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">valid_pixels</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">conserve_flux</span><span class="p">:</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">valid_pixels</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">combined_result</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()[</span><span class="n">valid_pixels</span><span class="p">]</span>
+                    <span class="o">/</span> <span class="n">combined_result</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()[</span><span class="n">valid_pixels</span><span class="p">]</span>
+                <span class="p">)</span>
+                <span class="k">del</span> <span class="n">combined_result</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_jacobian</span><span class="p">:</span>
+                    <span class="n">dy_x</span><span class="p">,</span> <span class="n">dx_x</span> <span class="o">=</span> <span class="n">gradient2d</span><span class="p">(</span><span class="n">x_source</span><span class="p">)</span>
+                    <span class="n">dy_y</span><span class="p">,</span> <span class="n">dx_y</span> <span class="o">=</span> <span class="n">gradient2d</span><span class="p">(</span><span class="n">y_source</span><span class="p">)</span>
+                    <span class="n">jacobian_det</span> <span class="o">=</span> <span class="n">dx_x</span> <span class="o">*</span> <span class="n">dy_y</span>
+                    <span class="k">del</span> <span class="n">dy_y</span>
+                    <span class="n">jacobian_det</span> <span class="o">-=</span> <span class="n">dy_x</span> <span class="o">*</span> <span class="n">dx_y</span>
+                    <span class="k">del</span> <span class="n">dx_x</span><span class="p">,</span> <span class="n">dy_x</span><span class="p">,</span> <span class="n">dx_y</span>
+                    <span class="n">result</span><span class="p">[</span><span class="n">valid_pixels</span><span class="p">]</span> <span class="o">*=</span> <span class="n">jacobian_det</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)[</span><span class="n">valid_pixels</span><span class="p">]</span>
+                    <span class="k">del</span> <span class="n">jacobian_det</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">valid_pixels</span><span class="p">]</span> <span class="o">=</span> <span class="n">combined_result</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()[</span><span class="n">valid_pixels</span><span class="p">]</span>
+                <span class="k">del</span> <span class="n">combined_result</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">combined_result</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span> <span class="o">/</span> <span class="n">combined_result</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span>
+            <span class="k">del</span> <span class="n">combined_result</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;No valid pixels found in footprint! Using raw interpolated values&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">del</span> <span class="n">valid_pixels</span>
+        <span class="k">return</span> <span class="n">result</span></div>
 
 
 <div class="viewcode-block" id="Reproject.interpolate_source_image">
@@ -681,6 +953,15 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">interpolate_source_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interpolation_mode</span><span class="o">=</span><span class="s2">&quot;bilinear&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Interpolate the source image at the calculated source coordinates with flux conservation.</span>
+
+<span class="sd">        This is a convenience wrapper around:</span>
+
+<span class="sd">        1. :meth:`compute_pixel_map`</span>
+<span class="sd">        2. :meth:`apply_pixel_map`</span>
+
+<span class="sd">        If you need access to the pixel map itself, call</span>
+<span class="sd">        :meth:`compute_pixel_map` directly and pass it to</span>
+<span class="sd">        :meth:`apply_pixel_map`.</span>
 
 <span class="sd">        This method performs the actual pixel resampling needed for dfreproject</span>
 <span class="sd">        while preserving the total flux (photometric accuracy) by using a footprint correction and the Jacobian of the transformation.</span>
@@ -726,63 +1007,11 @@
 <span class="sd">        Areas in the target image that map outside the source image boundaries</span>
 <span class="sd">        will be filled with NaNs.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># Get source coordinates</span>
-        <span class="n">x_source</span><span class="p">,</span> <span class="n">y_source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_sourceCoords</span><span class="p">()</span>
-        <span class="n">B</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_source_images</span><span class="o">.</span><span class="n">shape</span>
-
-        <span class="c1"># Normalize coordinates</span>
-        <span class="n">x_normalized</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">x_source</span> <span class="o">/</span> <span class="p">(</span><span class="n">W</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="o">-</span> <span class="mf">1.0</span>
-        <span class="n">y_normalized</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">y_source</span> <span class="o">/</span> <span class="p">(</span><span class="n">H</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="o">-</span> <span class="mf">1.0</span>
-
-        <span class="c1"># Prepare images and grid for grid_sample</span>
-        <span class="n">source_images</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_source_images</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># [B, 1, H, W]</span>
-        <span class="n">ones</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">source_images</span><span class="p">)</span>
-
-        <span class="c1"># Combine images with ones for footprint calculation</span>
-        <span class="n">combined_result</span> <span class="o">=</span> <span class="n">interpolate_image</span><span class="p">(</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">source_images</span><span class="p">,</span> <span class="n">ones</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">x_normalized</span><span class="p">,</span> <span class="n">y_normalized</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span>
-            <span class="n">interpolation_mode</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="k">del</span> <span class="n">source_images</span><span class="p">,</span> <span class="n">ones</span><span class="p">,</span> <span class="n">x_normalized</span><span class="p">,</span> <span class="n">y_normalized</span>
-
-        <span class="c1"># Create output array initialized with NaN</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">combined_result</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),</span> <span class="n">torch</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
-        <span class="n">valid_pixels</span> <span class="o">=</span> <span class="n">combined_result</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span> <span class="o">&gt;</span> <span class="n">EPSILON</span>
-        <span class="c1"># Apply footprint correction only where footprint is significant</span>
-        <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">valid_pixels</span><span class="p">):</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">conserve_flux</span><span class="p">:</span>
-                <span class="c1"># Normalize by the footprint where valid</span>
-                <span class="n">result</span><span class="p">[</span><span class="n">valid_pixels</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="n">combined_result</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()[</span><span class="n">valid_pixels</span><span class="p">]</span>
-                    <span class="o">/</span> <span class="n">combined_result</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()[</span><span class="n">valid_pixels</span><span class="p">]</span>
-                <span class="p">)</span>
-
-                <span class="c1"># Free combined_result immediately</span>
-                <span class="k">del</span> <span class="n">combined_result</span>
-
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_jacobian</span><span class="p">:</span>
-                    <span class="c1"># Get gradients</span>
-                    <span class="n">dy_x</span><span class="p">,</span> <span class="n">dx_x</span> <span class="o">=</span> <span class="n">gradient2d</span><span class="p">(</span><span class="n">x_source</span><span class="p">)</span>  <span class="c1"># ∂x_in/∂y_out, ∂x_in/∂x_out</span>
-                    <span class="n">dy_y</span><span class="p">,</span> <span class="n">dx_y</span> <span class="o">=</span> <span class="n">gradient2d</span><span class="p">(</span><span class="n">y_source</span><span class="p">)</span>  <span class="c1"># ∂y_in/∂y_out, ∂y_in/∂x_out</span>
-                    <span class="n">jacobian_det</span> <span class="o">=</span> <span class="n">dx_x</span> <span class="o">*</span> <span class="n">dy_y</span>
-                    <span class="k">del</span> <span class="n">dy_y</span>
-                    <span class="n">jacobian_det</span> <span class="o">-=</span> <span class="n">dy_x</span> <span class="o">*</span> <span class="n">dx_y</span>
-                    <span class="k">del</span> <span class="n">dx_x</span><span class="p">,</span> <span class="n">dy_x</span><span class="p">,</span> <span class="n">dx_y</span>
-                    <span class="n">result</span><span class="p">[</span><span class="n">valid_pixels</span><span class="p">]</span> <span class="o">*=</span> <span class="n">jacobian_det</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)[</span><span class="n">valid_pixels</span><span class="p">]</span>
-                    <span class="k">del</span> <span class="n">jacobian_det</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">result</span><span class="p">[</span><span class="n">valid_pixels</span><span class="p">]</span> <span class="o">=</span> <span class="n">combined_result</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()[</span><span class="n">valid_pixels</span><span class="p">]</span>
-                <span class="k">del</span> <span class="n">combined_result</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">result</span> <span class="o">=</span> <span class="n">combined_result</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span> <span class="o">/</span> <span class="n">combined_result</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span>
-            <span class="k">del</span> <span class="n">combined_result</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                <span class="s2">&quot;No valid pixels found in footprint! Using raw interpolated values&quot;</span>
-            <span class="p">)</span>
-
-        <span class="k">del</span> <span class="n">valid_pixels</span><span class="p">,</span> <span class="n">x_source</span><span class="p">,</span> <span class="n">y_source</span>
-
+        <span class="c1"># Convenience path: compute + apply in one call.</span>
+        <span class="n">pixel_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_pixel_map</span><span class="p">()</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_pixel_map</span><span class="p">(</span><span class="n">pixel_map</span><span class="p">,</span> <span class="n">interpolation_mode</span><span class="p">)</span>
+        <span class="n">x_source</span><span class="p">,</span> <span class="n">y_source</span> <span class="o">=</span> <span class="n">pixel_map</span>
+        <span class="k">del</span> <span class="n">x_source</span><span class="p">,</span> <span class="n">y_source</span>
         <span class="k">return</span> <span class="n">result</span></div>
 </div>
 
@@ -809,6 +1038,7 @@
     <span class="n">max_memory_mb</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">chunk_safety_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span>
     <span class="n">show_chunk_progress</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">show_log</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Reproject an astronomical image from a source WCS to a target WCS.</span>
@@ -874,6 +1104,9 @@
 <span class="sd">    show_chunk_progress: bool, optional</span>
 <span class="sd">        Whether to log progress when using chunked processing. Default True.</span>
 <span class="sd">        Only used if max_memory_mb is set.</span>
+
+<span class="sd">    show_log: bool, optional</span>
+<span class="sd">        Whether to log progress. Default True.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -983,13 +1216,12 @@
 
     <span class="c1"># Choose between chunked and non-chunked processing</span>
     <span class="k">if</span> <span class="n">max_memory_mb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using chunked processing with </span><span class="si">{</span><span class="n">max_memory_mb</span><span class="si">}</span><span class="s2"> MB memory limit&quot;</span><span class="p">)</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">reproject_chunked</span><span class="p">(</span>
             <span class="n">reprojection</span><span class="p">,</span>
             <span class="n">max_memory_mb</span><span class="o">=</span><span class="n">max_memory_mb</span><span class="p">,</span>
             <span class="n">safety_factor</span><span class="o">=</span><span class="n">chunk_safety_factor</span><span class="p">,</span>
             <span class="n">interpolation_mode</span><span class="o">=</span><span class="n">order</span><span class="p">,</span>
-            <span class="n">show_progress</span><span class="o">=</span><span class="n">show_chunk_progress</span>
+            <span class="n">show_progress</span><span class="o">=</span><span class="n">show_chunk_progress</span><span class="p">,</span>
         <span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">reprojection</span><span class="o">.</span><span class="n">interpolate_source_image</span><span class="p">(</span><span class="n">interpolation_mode</span><span class="o">=</span><span class="n">order</span><span class="p">)</span>
@@ -1005,32 +1237,50 @@
     <span class="k">return</span> <span class="n">result</span></div>
 
 </pre></div>
-
-           </div>
-          </div>
-          <footer>
-
-  <hr/>
-
-  <div role="contentinfo">
-    <p>&#169; Copyright 2025, Carter Rhea.</p>
-  </div>
-
-  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    provided by <a href="https://readthedocs.org">Read the Docs</a>.
-   
-
-</footer>
-        </div>
+</div>
+        </article>
+        <aside class="nftt-toc my-3">
+          
+        </aside>
       </div>
-    </section>
-  </div>
-  <script>
-      jQuery(function () {
-          SphinxRtdTheme.Navigation.enable(true);
-      });
-  </script> 
+    </div>
 
-</body>
+    <footer class="nftt-footer">
+      
+<nav id="paginator"></nav>
+
+      <div class="py-5 px-4 px-md-3">
+  <div class="container">
+    
+
+    <div class="row">
+      <div class="col-lg-12 text-center">
+        <a class="brand-text d-inline-flex align-items-center mb-2 text-decoration-none" href="/" aria-label="dfreproject">
+          <span class="fs-6 fw-bold">dfreproject</span>
+        </a>
+        
+          <ul class="list-unstyled small text-muted">
+            <li>2025, Carter Rhea</li>
+          </ul>
+        
+        
+        <div class="built-with pt-2">
+          Built with <a href="http://sphinx-doc.org">Sphinx 8.1.3</a> and <a href="https://github.com/danirus/sphinx-nefertiti">Nefertiti 0.8.10</a>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+    </footer>
+    <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../_static/docs-versions.js?v=08b0cbfb"></script>
+    <script src="../../_static/sphinx-nefertiti.min.js?v=0d8c3777"></script>
+    <script src="../../_static/bootstrap.bundle.min.js?v=647f0dd8"></script>
+  </body>
 </html>

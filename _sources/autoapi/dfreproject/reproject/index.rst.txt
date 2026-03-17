@@ -169,9 +169,53 @@ Module Contents
 
 
 
+   .. py:method:: compute_pixel_map()
+
+      Compute and return source-space pixel coordinates for reprojection.
+
+      This method exposes the pixel mapping step used by
+      :meth:`interpolate_source_image`, allowing callers to inspect, cache,
+      or reuse the coordinate transform without immediately interpolating
+      image values.
+
+      :returns: ``(x_source, y_source)`` pixel coordinates in source-image index
+                space (unnormalized; not in ``grid_sample`` [-1, 1] coordinates).
+      :rtype: Tuple[torch.Tensor, torch.Tensor]
+
+
+
+   .. py:method:: apply_pixel_map(pixel_map: Tuple[torch.Tensor, torch.Tensor], interpolation_mode: str = 'bilinear') -> torch.Tensor
+
+      Interpolate the source image using a precomputed pixel map.
+
+      Use this method with a map returned by :meth:`compute_pixel_map` when
+      you want to reuse the same coordinate transform across repeated
+      interpolation calls.
+
+      :param pixel_map: ``(x_source, y_source)`` coordinates from
+                        :meth:`compute_pixel_map`.
+      :type pixel_map: Tuple[torch.Tensor, torch.Tensor]
+      :param interpolation_mode: Interpolation algorithm. Options: ``'nearest'``, ``'bilinear'``,
+                                 ``'bicubic'``, ``'lanczos'``.
+      :type interpolation_mode: str, default 'bilinear'
+
+      :returns: Reprojected image on the target grid.
+      :rtype: torch.Tensor
+
+
+
    .. py:method:: interpolate_source_image(interpolation_mode='bilinear') -> torch.Tensor
 
       Interpolate the source image at the calculated source coordinates with flux conservation.
+
+      This is a convenience wrapper around:
+
+      1. :meth:`compute_pixel_map`
+      2. :meth:`apply_pixel_map`
+
+      If you need access to the pixel map itself, call
+      :meth:`compute_pixel_map` directly and pass it to
+      :meth:`apply_pixel_map`.
 
       This method performs the actual pixel resampling needed for dfreproject
       while preserving the total flux (photometric accuracy) by using a footprint correction and the Jacobian of the transformation.
@@ -215,7 +259,7 @@ Module Contents
 
 
 
-.. py:function:: calculate_reprojection(source_hdus: Union[astropy.io.fits.PrimaryHDU, dfreproject.tensorhdu.TensorHDU, Tuple[numpy.ndarray, Union[astropy.wcs.WCS, astropy.io.fits.Header]], Tuple[torch.Tensor, Union[astropy.wcs.WCS, astropy.io.fits.Header]], List[Union[astropy.io.fits.PrimaryHDU, Tuple[numpy.ndarray, Union[astropy.wcs.WCS, astropy.io.fits.Header]]]]], target_wcs: Union[astropy.wcs.WCS, astropy.io.fits.Header], shape_out: Optional[Tuple[int, int]] = None, order: str = 'nearest', device: str = None, num_threads: int = None, requires_grad: bool = False, conserve_flux: bool = True, compute_jacobian: bool = True, max_memory_mb: Optional[float] = None, chunk_safety_factor: float = 0.8, show_chunk_progress: bool = True)
+.. py:function:: calculate_reprojection(source_hdus: Union[astropy.io.fits.PrimaryHDU, dfreproject.tensorhdu.TensorHDU, Tuple[numpy.ndarray, Union[astropy.wcs.WCS, astropy.io.fits.Header]], Tuple[torch.Tensor, Union[astropy.wcs.WCS, astropy.io.fits.Header]], List[Union[astropy.io.fits.PrimaryHDU, Tuple[numpy.ndarray, Union[astropy.wcs.WCS, astropy.io.fits.Header]]]]], target_wcs: Union[astropy.wcs.WCS, astropy.io.fits.Header], shape_out: Optional[Tuple[int, int]] = None, order: str = 'nearest', device: str = None, num_threads: int = None, requires_grad: bool = False, conserve_flux: bool = True, compute_jacobian: bool = True, max_memory_mb: Optional[float] = None, chunk_safety_factor: float = 0.8, show_chunk_progress: bool = True, show_log: bool = False)
 
    Reproject an astronomical image from a source WCS to a target WCS.
 
@@ -277,6 +321,9 @@ Module Contents
    show_chunk_progress: bool, optional
        Whether to log progress when using chunked processing. Default True.
        Only used if max_memory_mb is set.
+
+   show_log: bool, optional
+       Whether to log progress. Default True.
 
    :returns: The reprojected image as a numpy ndarray (default) or PyTorch tensor if
              requires_grad=True.
